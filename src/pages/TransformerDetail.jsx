@@ -154,3 +154,81 @@ const TransformerDetail = () => {
           </div>
           <p className="text-xs font-mono text-slate-300">Nivel de Riesgo: <strong className="text-cyan-300 font-bold">{transformer.riskLevel}</strong></p>
         </div>
+
+        {/* AI Factors & Explainability Box */}
+        <div className="md:col-span-2 glass-panel rounded-2xl p-6 space-y-4">
+          <h3 className="text-sm font-bold text-white font-mono flex items-center gap-2 uppercase tracking-wider">
+            <BrainCircuit className="h-5 w-5 text-cyan-400" />
+            Explicabilidad del Modelo de IA (Sección 11)
+          </h3>
+
+          <div className="bg-slate-950/80 p-5 rounded-xl border border-slate-800 space-y-3 font-mono text-xs">
+            <div className="text-slate-200 font-bold flex items-center gap-2 text-sm">
+              <ShieldAlert className="h-4 w-4 text-amber-400 shrink-0" />
+              {latestPred?.explanation || 'Evaluación continua dentro de tolerancias nominales de operación.'}
+            </div>
+
+            <div className="space-y-2 pt-2 border-t border-slate-900 text-slate-300">
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Variables de Mayor Influjo:</p>
+              {latestPred?.topFactorsList?.map((factor, idx) => (
+                <div key={idx} className="flex items-center gap-2.5 text-slate-200 bg-slate-900/90 px-3 py-1.5 rounded-lg border border-slate-850">
+                  <span className="h-2 w-2 rounded-full bg-cyan-400 animate-ping"></span>
+                  <span className="font-semibold">{factor}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Real-Time Telemetry Area Chart */}
+      <div className="glass-panel rounded-2xl p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <h3 className="text-base font-bold text-white font-mono flex items-center gap-2">
+            <Activity className="h-5 w-5 text-cyan-400" />
+            Gráfica Temporal de Telemetría (Recharts Time-Series)
+          </h3>
+
+          <div className="flex gap-2 font-mono text-xs">
+            {['TEMPERATURE', 'VOLTAGE', 'CURRENT', 'VIBRATION'].map((type) => (
+              <button
+                key={type}
+                onClick={() => setActiveSensorType(type)}
+                className={`px-3.5 py-2 rounded-xl border font-bold transition ${
+                  activeSensorType === type
+                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50 glow-cyan'
+                    : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-850'
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="h-72 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={readingsHistory}>
+              <defs>
+                <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+              <XAxis dataKey="time" stroke="#64748b" fontSize={11} tickLine={false} />
+              <YAxis stroke="#64748b" fontSize={11} tickLine={false} domain={['auto', 'auto']} />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#06b6d4', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}
+                labelStyle={{ color: '#94a3b8' }}
+              />
+              <Area type="monotone" dataKey="value" stroke="#06b6d4" strokeWidth={3} fillOpacity={1} fill="url(#colorVal)" dot={{ r: 4, fill: '#06b6d4' }} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default TransformerDetail;
