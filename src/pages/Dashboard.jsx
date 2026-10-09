@@ -156,3 +156,82 @@ const Dashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-sans text-xs">
+          <button
+            onClick={() => handleQuickScenario('NORMAL')}
+            className="p-4 rounded-xl border border-emerald-500/40 bg-emerald-950/30 text-emerald-300 font-bold flex items-center justify-center gap-2 cursor-pointer hover:bg-emerald-900/50 transition"
+          >
+            <CheckCircle2 className="h-5 w-5 text-emerald-400" /> 1. Operación Normal Estable
+          </button>
+
+          <button
+            onClick={() => handleQuickScenario('GRADUAL_DEGRADATION')}
+            className="p-4 rounded-xl border border-amber-500/40 bg-amber-950/30 text-amber-300 font-bold flex items-center justify-center gap-2 cursor-pointer hover:bg-amber-900/50 transition"
+          >
+            <AlertTriangle className="h-5 w-5 text-amber-400" /> 2. Degradación Gradual (T-C-001)
+          </button>
+
+          <button
+            onClick={() => handleQuickScenario('SUDDEN_FAILURE')}
+            className="p-4 rounded-xl border border-rose-500/40 bg-rose-950/30 text-rose-300 font-bold flex items-center justify-center gap-2 cursor-pointer hover:bg-rose-900/50 transition"
+          >
+            <Flame className="h-5 w-5 text-rose-400" /> 3. Falla Súbita (Pico Térmico)
+          </button>
+        </div>
+      </div>
+
+      {/* GRID HIERARCHY ASSET MAP */}
+      <div className="max-w-6xl mx-auto tractian-card p-6 space-y-6">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div>
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-cyan-400" />
+              Jerarquía de Subestaciones y Transformadores
+            </h3>
+            <p className="text-xs text-slate-400">Estructura jerárquica con cálculo de peor estado (Patrón Composite)</p>
+          </div>
+          <button
+            onClick={() => setActiveTab('monitoring')}
+            className="text-xs text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800"
+          >
+            Ver Mapa SCADA Completo <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {gridData.map((sub) => (
+            <div key={sub.id} className="bg-slate-950/80 border border-slate-800 rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div>
+                  <h4 className="font-bold text-white text-sm">{sub.name}</h4>
+                  <span className="text-xs text-slate-400 font-mono">{sub.code} • {sub.type}</span>
+                </div>
+                <StatusBadge status={sub.status} />
+              </div>
+
+              <div className="space-y-2 pt-1">
+                <p className="text-xs text-slate-400 font-medium">Transformadores:</p>
+                {sub.transformers?.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => handleSelectTransformer(t.id)}
+                    className="w-full flex items-center justify-between p-3 rounded-lg bg-slate-900/90 hover:bg-slate-850 text-xs border border-slate-800 transition text-left cursor-pointer group"
+                  >
+                    <div>
+                      <span className="font-bold text-slate-200 group-hover:text-cyan-400 transition block">{t.name}</span>
+                      <span className="text-xs text-slate-400 font-mono">
+                        Prob. Falla: <strong className="text-cyan-400 font-bold">{(t.failureProbability * 100).toFixed(1)}%</strong>
+                      </span>
+                    </div>
+                    <StatusBadge status={t.status} size="sm" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
