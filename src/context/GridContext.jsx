@@ -32,3 +32,37 @@ export const GridProvider = ({ children }) => {
   }, []);
 
   // Poll telemetry every 3 seconds (<3s latency requirement)
+  useEffect(() => {
+    refreshData();
+    const interval = setInterval(refreshData, 3000);
+    return () => clearInterval(interval);
+  }, [refreshData]);
+
+  return (
+    <GridContext.Provider
+      value={{
+        activeTab,
+        setActiveTab,
+        summary,
+        gridData,
+        alerts,
+        selectedTransformerId,
+        setSelectedTransformerId,
+        loading,
+        isLiveConnected,
+        lastUpdated,
+        refreshData
+      }}
+    >
+      {children}
+    </GridContext.Provider>
+  );
+};
+
+export const useGrid = () => {
+  const context = useContext(GridContext);
+  if (!context) {
+    throw new Error('useGrid must be used within GridProvider');
+  }
+  return context;
+};
