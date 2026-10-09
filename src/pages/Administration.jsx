@@ -35,3 +35,40 @@ const Administration = () => {
       </div>
 
       {msg && (
+        <div className="bg-emerald-950 border border-emerald-800 text-emerald-300 p-4 rounded-lg font-mono text-xs flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4" />
+          {msg}
+        </div>
+      )}
+
+      {/* Simulator Control Panel */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6">
+        <h3 className="text-sm font-semibold text-white font-mono uppercase tracking-wider border-b border-slate-800 pb-3">
+          Controlador de Simulador de Sensores en Tiempo Real (Sección 7)
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 font-mono text-xs">
+          <button
+            onClick={() => handleUpdateSimulator(true, 'NORMAL')}
+            className={`p-5 rounded-lg border text-left space-y-2 transition ${
+              scenario === 'NORMAL' && simActive
+                ? 'bg-emerald-950/60 border-emerald-700 text-emerald-300 glow-normal'
+                : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850'
+            }`}
+          >
+            <div className="font-bold text-sm text-emerald-400 flex items-center gap-2">
+              <Play className="h-4 w-4 fill-current" /> 1. ESCENARIO NORMAL
+            </div>
+            <p className="text-[11px] text-slate-400">Lecturas estables dentro de rangos nominales de tolerancia.</p>
+          </button>
+
+          <button
+            onClick={() => handleUpdateSimulator(true, 'GRADUAL_DEGRADATION')}
+            className={`p-5 rounded-lg border text-left space-y-2 transition ${
+              scenario === 'GRADUAL_DEGRADATION' && simActive
+                ? 'bg-amber-950/60 border-amber-700 text-amber-300 glow-warning'
+                : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850'
+            }`}
+          >
+            <div className="font-bold text-sm text-amber-400 flex items-center gap-2">
+              <Play className="h-4 w-4 fill-current" /> 2. DEGRADACIÓN GRADUAL
