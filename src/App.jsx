@@ -477,3 +477,123 @@ export default function App() {
     ...asset,
     substationName: asset.substationName || substation.name,
   }))), [substations]);
+  const currentPage = navigation.find((item) => item.id === page) || navigation[0];
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        await getCsrfToken();
+        const response = await getCurrentUser();
+        if (active) setCurrentUser(response.data);
+      } catch (error) {
+        if (active && error.response?.status !== 401) {
+          setAuthConnectionError(error.response?.status === 404
+            ? 'El backend aún no tiene la autenticación actualizada. Reinícialo para aplicar el inicio de sesión.'
+            : 'No se pudo conectar con el backend. Comprueba que el servicio esté iniciado.');
+        }
+      } finally {
+        if (active) setAuthLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
+  const refreshData = useCallback(async () => {
+    setRefreshing(true);
+    const results = await Promise.allSettled([
+      getHealth(),
+      getGridSummary(),
+      getGridHierarchy(),
+      getAlerts(),
+      getRiskRanking(),
+      getMaintenances(),
+      getSimulationHistory(),
+      getModelInfo(),
+      getClaudeStatus(),
+      getTelemetryStatus(),
+    ]);
+    const [healthResult, summaryResult, gridResult, alertsResult, rankingResult, maintenanceResult, simulationResult, modelResult, claudeResult, telemetryResult] = results;
+    const read = (result) => (result.status === 'fulfilled' ? result.value.data : null);
+
+    setHealth(read(healthResult));
+    setSummary(read(summaryResult));
+    setSubstations(read(gridResult) || []);
+    setAlerts(read(alertsResult) || []);
+    setRanking(read(rankingResult) || []);
+    setMaintenances(read(maintenanceResult) || []);
+    setSimulations(read(simulationResult) || []);
+    setModelInfo(read(modelResult));
+    if (claudeResult.status === 'fulfilled') {
+      setClaudeStatus(claudeResult.value.data);
+    }
+    if (telemetryResult.status === 'fulfilled') {
+      setTelemetryStatus(telemetryResult.value.data);
+    }
+    setUpdatedAt(new Date());
+
+    const failures = results.filter((result) => result.status === 'rejected');
+    const apiIsUp = healthResult.status === 'fulfilled' && healthResult.value.data?.status === 'UP';
+    if (!apiIsUp) {
+      setConnectionError('No se pudo conectar con el backend. Inicia Docker Compose y verifica que PostgreSQL esté saludable.');
+    } else if (failures.length) {
+      const firstFailure = failures[0];
+      setConnectionError(`El backend responde, pero ${failures.length} solicitud(es) de datos fallaron: ${errorText(firstFailure.reason)}`);
+      console.error('Falló la carga de datos de GridMind:', failures.map((failure) => failure.reason));
+    } else {
+      setConnectionError('');
+    }
+    setLoading(false);
+    setRefreshing(false);
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser) return undefined;
+    refreshData();
+    const timer = window.setInterval(refreshData, 10000);
+    return () => window.clearInterval(timer);
+  }, [refreshData, currentUser]);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('No se pudo cerrar la sesión en el servidor:', error);
+    } finally {
+      setCurrentUser(null);
+      setPage('overview');
+    }
+  };
+
+  if (authLoading) {
+    return <main className="auth-page"><div className="auth-loading"><span className="brand-mark"><Zap size={20} fill="currentColor" /></span><p>Conectando con GridMind…</p></div></main>;
+  }
+
+  if (!currentUser) {
+    return <AuthPage onAuthenticated={(user) => { setCurrentUser(user); setAuthConnectionError(''); }} connectionError={authConnectionError} />;
+  }
+
+  const runAction = async (action, successMessage) => {
+    setActionError('');
+    setNotice('');
+    try {
+      await action();
+      setNotice(successMessage);
+      await refreshData();
+    } catch (error) {
+      setActionError(errorText(error));
+      console.error('La acción de GridMind no se pudo completar:', error);
+    }
+  };
+
+  const handleAcknowledge = async (id) => {
+    setPendingId(id);
+    await runAction(() => acknowledgeAlert(id), 'Alerta marcada como revisada.');
+    setPendingId('');
+  };
+
+  const handleExplain = async (id) => {
+    setExplainingId(id);
+    setExplanationErrors((current) => ({ ...current, [id]: '' }));
+    try {
+      const response = await explainAlert(id);
