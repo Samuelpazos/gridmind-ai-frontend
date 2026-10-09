@@ -40,3 +40,45 @@ const Alerts = () => {
 
         {/* Filters */}
         <div className="flex items-center gap-3 font-mono text-xs">
+          <div className="flex items-center gap-2 bg-slate-900 px-3.5 py-2 rounded-xl border border-slate-800">
+            <Filter className="h-3.5 w-3.5 text-cyan-400" />
+            <select
+              value={filterAck}
+              onChange={(e) => setFilterAck(e.target.value)}
+              className="bg-transparent text-slate-200 font-bold outline-none cursor-pointer"
+            >
+              <option value="ALL">Todas las Alertas</option>
+              <option value="UNACK">No Reconocidas</option>
+              <option value="ACK">Reconocidas</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2 bg-slate-900 px-3.5 py-2 rounded-xl border border-slate-800">
+            <select
+              value={filterSeverity}
+              onChange={(e) => setFilterSeverity(e.target.value)}
+              className="bg-transparent text-slate-200 font-bold outline-none cursor-pointer"
+            >
+              <option value="ALL">Cualquier Severidad</option>
+              <option value="WARNING">WARNING</option>
+              <option value="CRITICAL">CRITICAL</option>
+              <option value="FAILED">FAILED</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Alerts Table */}
+      <div className="glass-panel rounded-2xl overflow-hidden">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-slate-950/80 text-slate-400 font-mono text-xs border-b border-slate-800">
+              <th className="p-4 font-bold">Severidad</th>
+              <th className="p-4 font-bold">Componente / Subestación</th>
+              <th className="p-4 font-bold">Mensaje Alerta</th>
+              <th className="p-4 font-bold">Origen</th>
+              <th className="p-4 font-bold">Fecha / Hora</th>
+              <th className="p-4 font-bold text-right">Acción</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800/60 text-xs font-mono">
