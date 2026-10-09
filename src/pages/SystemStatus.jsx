@@ -76,3 +76,42 @@ const SystemStatus = () => {
 
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
           <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-slate-800 pb-3">
+            <Radio className="h-4 w-4 text-cyan-400" />
+            Streaming WebSocket Telemetría
+          </h3>
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-slate-400">Canal STOMP:</span>
+              <span className="text-cyan-400 font-bold">/ws/stream (/topic/telemetry)</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Latencia Objetivo:</span>
+              <span className="text-emerald-400 font-bold">&lt; 3 Segundos</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
+          <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-slate-800 pb-3">
+            <Cpu className="h-4 w-4 text-cyan-400" />
+            Motor IA Smile & Fallback (RNF-08)
+          </h3>
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-slate-400">Estrategia Activa:</span>
+              <span className="text-cyan-400 font-bold">{health?.activeStrategy || 'SUPERVISED'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Modo Degregado Fallback:</span>
+              <span className={health?.degradedMode ? 'text-amber-400 font-bold' : 'text-slate-400'}>
+                {health?.degradedMode ? 'FORZADO (Evaluación mediante reglas)' : 'INACTIVO (Operación Normal IA)'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SystemStatus;
