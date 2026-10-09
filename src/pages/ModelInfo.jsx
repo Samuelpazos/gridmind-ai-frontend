@@ -51,3 +51,57 @@ const ModelInfo = () => {
             Evaluación de Desempeño sobre Dataset Sintético Reproducible (Semilla Fija 42)
           </p>
         </div>
+
+        <button
+          onClick={handleTestReferenceScenario}
+          disabled={testingRef}
+          className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 via-cyan-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white font-extrabold text-xs px-4 py-3 rounded-xl shadow-lg font-mono transition border border-cyan-400/40 glow-cyan"
+        >
+          <Play className="h-4 w-4 fill-current animate-pulse" />
+          {testingRef ? 'Evaluando...' : 'Probar Escenario de Referencia (Sección 8)'}
+        </button>
+      </div>
+
+      {/* Model Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 font-mono">
+        <div className="glass-panel glass-panel-hover rounded-2xl p-6 space-y-2">
+          <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Precision</span>
+          <div className="text-4xl font-extrabold text-cyan-400">
+            {info ? `${(info.precision * 100).toFixed(1)}%` : '--'}
+          </div>
+          <p className="text-xs text-slate-400">Exactitud predicciones positivas</p>
+        </div>
+
+        <div className="glass-panel glass-panel-hover rounded-2xl p-6 space-y-2 border-emerald-500/50 glow-emerald">
+          <span className="text-emerald-300 text-xs font-extrabold flex items-center gap-1 uppercase tracking-wider">
+            <Award className="h-4 w-4" /> Recall (&gt;85% Requisito)
+          </span>
+          <div className="text-4xl font-extrabold text-emerald-400">
+            {info ? `${(info.recall * 100).toFixed(1)}%` : '--'}
+          </div>
+          <p className="text-xs text-emerald-300 font-bold">Cumple meta de detección &gt;85%</p>
+        </div>
+
+        <div className="glass-panel glass-panel-hover rounded-2xl p-6 space-y-2">
+          <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">F1-Score</span>
+          <div className="text-4xl font-extrabold text-cyan-400">
+            {info ? `${(info.f1Score * 100).toFixed(1)}%` : '--'}
+          </div>
+          <p className="text-xs text-slate-400">Balance Precision-Recall</p>
+        </div>
+
+        <div className="glass-panel glass-panel-hover rounded-2xl p-6 space-y-2">
+          <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">ROC-AUC</span>
+          <div className="text-4xl font-extrabold text-cyan-400">
+            {info ? info.rocAuc.toFixed(3) : '--'}
+          </div>
+          <p className="text-xs text-slate-400">Discriminación de clases</p>
+        </div>
+      </div>
+
+      {/* Reference Scenario Result Card */}
+      {refScenarioResult && (
+        <div className="glass-panel rounded-2xl p-6 space-y-5 font-mono border-emerald-500/60 glow-emerald">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 className="text-base font-extrabold text-emerald-300 flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-emerald-400" />
