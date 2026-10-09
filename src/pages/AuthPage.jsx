@@ -63,3 +63,36 @@ export default function AuthPage({ onAuthenticated, connectionError }) {
           {registering && (
             <label className="auth-field">Nombre
               <input autoComplete="name" maxLength="100" required value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Tu nombre" />
+            </label>
+          )}
+          <label className="auth-field">Correo electrónico
+            <input autoComplete="email" type="email" maxLength="254" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nombre@correo.com" />
+          </label>
+          <label className="auth-field">Contraseña
+            <span className="password-input-wrap">
+              <input autoComplete={registering ? 'new-password' : 'current-password'} type={passwordVisible ? 'text' : 'password'} minLength={registering ? 12 : undefined} maxLength="72" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder={registering ? 'Mínimo 12 caracteres' : 'Tu contraseña'} />
+              <button type="button" className="password-visibility" onClick={() => setPasswordVisible((visible) => !visible)} aria-label={passwordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}>{passwordVisible ? <EyeOff size={17} /> : <Eye size={17} />}</button>
+            </span>
+          </label>
+          {registering && (
+            <>
+              <label className="auth-field">Confirma la contraseña
+                <input autoComplete="new-password" type={passwordVisible ? 'text' : 'password'} maxLength="72" required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Escribe nuevamente tu contraseña" />
+              </label>
+              <p className="auth-role-note">La primera cuenta será administradora. Las cuentas siguientes tendrán rol de operador.</p>
+            </>
+          )}
+          <button className="button button-primary button-wide auth-submit" type="submit" disabled={submitting}>
+            {submitting ? 'Procesando…' : registering ? 'Crear cuenta y entrar' : 'Entrar a GridMind'}
+          </button>
+        </form>
+
+        <p className="auth-switch">
+          {registering ? '¿Ya tienes una cuenta?' : '¿Primera vez en GridMind?'}{' '}
+          <button type="button" onClick={switchMode}>{registering ? 'Inicia sesión' : 'Crear cuenta'}</button>
+        </p>
+        <p className="auth-security-note">Las contraseñas se almacenan cifradas y el acceso usa una sesión segura.</p>
+      </section>
+    </main>
+  );
+}
