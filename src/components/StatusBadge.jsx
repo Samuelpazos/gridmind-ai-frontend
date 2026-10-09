@@ -12,3 +12,17 @@ const StatusBadge = ({ status, size = 'normal' }) => {
     colors = 'bg-gradient-to-r from-red-950 to-rose-950 text-white border-red-500 font-extrabold shadow-lg shadow-red-950/80 animate-pulse text-glow-crimson';
   }
 
+  const padding = size === 'sm' ? 'px-3 py-1 text-[11px]' : 'px-4 py-1.5 text-xs';
+
+  return (
+    <span className={`inline-flex items-center gap-2 rounded-full border font-mono font-black tracking-wider shadow-md ${padding} ${colors}`}>
+      <span className="relative flex h-2.5 w-2.5">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
+        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-current"></span>
+      </span>
+      {s}
+    </span>
+  );
+};
+
+export default StatusBadge;
