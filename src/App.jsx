@@ -357,3 +357,123 @@ function SimulatorPage({ assets, history, onRefresh, selectedAssetId, onError })
           </label>
           <button type="submit" className="button button-primary button-wide" disabled={running || !assets.length}>{running ? <Loader2 className="spin" size={17} /> : <Play size={16} fill="currentColor" />} {running ? 'Evaluando escenario…' : 'Ejecutar simulación'}</button>
           <p className="privacy-note"><ShieldCheck size={15} />La simulación no cambia la base de datos operativa.</p>
+        </form>
+
+        <section className="surface-card result-panel">
+          {result ? (
+            <>
+              <div className="card-heading"><div><span className="eyebrow">RESULTADO DEL MODELO</span><h3>{result.transformerName || result.transformerCode}</h3></div><span className="result-spark"><Sparkles size={19} /></span></div>
+              <p className="result-description">{result.variableModified} aumenta un {result.deltaPercent}% en el escenario simulado.</p>
+              <div className="comparison-grid">
+                <div><span>Estado original</span><StatusPill value={result.originalState} /><strong>{probabilityLabel(result.originalProbability)}</strong><small>Probabilidad de falla</small></div>
+                <ArrowUpRight className="comparison-arrow" size={19} />
+                <div><span>Estado simulado</span><StatusPill value={result.simulatedState} /><strong>{probabilityLabel(result.simulatedProbability)}</strong><small>Probabilidad de falla</small></div>
+              </div>
+              <div className="recommendation-box"><Sparkles size={17} /><p><strong>Recomendación del modelo</strong><br />{result.recommendation || 'Revisa las condiciones del activo y repite el análisis con datos actualizados.'}</p></div>
+            </>
+          ) : (
+            <EmptyState icon={Gauge} title="El resultado aparecerá aquí" detail="Elige un transformador, ajusta una variable y ejecuta la simulación para comparar el riesgo." />
+          )}
+        </section>
+      </div>
+      <section className="surface-card">
+        <div className="card-heading"><div><span className="eyebrow">ACTIVIDAD RECIENTE</span><h3>Simulaciones anteriores</h3></div></div>
+        {history.length ? <div className="table-scroll"><table className="asset-table"><thead><tr><th>Activo</th><th>Variable</th><th>Variación</th><th>Estado simulado</th><th>Ejecutada</th></tr></thead><tbody>{history.slice(0, 8).map((entry) => <tr key={entry.simulationId}><td><strong>{entry.transformerCode || entry.transformerName}</strong></td><td>{entry.variableModified}</td><td>+{entry.deltaPercent}%</td><td><StatusPill value={entry.simulatedState} /></td><td>{dateLabel(entry.executedAt)}</td></tr>)}</tbody></table></div> : <p className="quiet-note">Aún no hay simulaciones guardadas.</p>}
+      </section>
+    </div>
+  );
+}
+
+function OperationsPage({ maintenances, health, modelInfo, telemetryStatus, onComplete, pendingId, onStrategyChange, onSimulatorChange, isAdmin }) {
+  const [strategy, setStrategy] = useState(health?.activeStrategy || 'SUPERVISED_MODEL_STRATEGY');
+  const [degraded, setDegraded] = useState(Boolean(health?.degradedMode));
+  const simulatorActive = Boolean(telemetryStatus?.simulatorActive);
+
+  useEffect(() => {
+    setStrategy(health?.activeStrategy || 'SUPERVISED_MODEL_STRATEGY');
+    setDegraded(Boolean(health?.degradedMode));
+  }, [health]);
+
+  return (
+    <div className="page-stack">
+      <SectionHeading eyebrow="HERRAMIENTAS DE OPERACIÓN" title="Operaciones" description="Gestiona recomendaciones de mantenimiento y revisa el estado de los servicios." />
+      <section className="surface-card">
+        <div className="card-heading"><div><span className="eyebrow">PLAN DE TRABAJO</span><h3>Mantenimiento recomendado</h3></div><span className="count-chip">{maintenances.filter((item) => item.status !== 'COMPLETED').length} pendientes</span></div>
+        <div className="maintenance-list">
+          {maintenances.map((item) => (
+            <article className="maintenance-row" key={item.id}>
+              <span className={`maintenance-icon ${item.status === 'COMPLETED' ? 'done' : ''}`}>{item.status === 'COMPLETED' ? <Check size={17} /> : <Wrench size={17} />}</span>
+              <div className="maintenance-copy"><strong>{item.transformerCode || item.transformerName || 'Activo'}</strong><p>{item.recommendation || 'Revisión preventiva recomendada.'}</p><small>{displayStatus(item.status)} · {dateLabel(item.scheduledDate || item.createdAt)}</small></div>
+              {item.status !== 'COMPLETED' && <button className="button button-outline compact" disabled={pendingId === item.id} onClick={() => onComplete(item.id)}>{pendingId === item.id ? <Loader2 className="spin" size={15} /> : <Check size={15} />} Completar</button>}
+            </article>
+          ))}
+          {!maintenances.length && <EmptyState icon={Wrench} title="Sin recomendaciones pendientes" detail="Las recomendaciones generadas para los activos se mostrarán aquí." />}
+        </div>
+      </section>
+
+      <div className="operations-grid">
+        <article className="surface-card">
+          <div className="card-heading"><div><span className="eyebrow">SISTEMA DE ANÁLISIS</span><h3>Configuración de IA</h3></div><span className="form-icon"><Cpu size={18} /></span></div>
+          <label className="field-label">Estrategia activa
+            <select value={strategy} onChange={(event) => setStrategy(event.target.value)} disabled={!isAdmin}>
+              <option value="SUPERVISED_MODEL_STRATEGY">Modelo supervisado</option><option value="THRESHOLD_STRATEGY">Reglas por umbral</option><option value="ISOLATION_FOREST_STRATEGY">Isolation Forest</option><option value="WEIGHTED_AGE_STRATEGY">Riesgo y antigüedad</option>
+            </select>
+          </label>
+          <label className="toggle-row"><span><strong>Modo degradado</strong><small>Usa reglas de respaldo si el modelo no responde.</small></span><input type="checkbox" checked={degraded} onChange={(event) => setDegraded(event.target.checked)} disabled={!isAdmin} /></label>
+          {isAdmin ? <button className="button button-primary" onClick={() => onStrategyChange(strategy, degraded)}><Check size={16} />Guardar configuración</button> : <p className="quiet-note">Solo una cuenta administradora puede cambiar la configuración del análisis.</p>}
+          <p className="quiet-note">{modelInfo?.modelName || modelInfo?.name || 'Modelo de análisis GridMind'}{modelInfo?.version ? ` · ${modelInfo.version}` : ''}</p>
+        </article>
+        <article className="surface-card system-card">
+          <div className="card-heading"><div><span className="eyebrow">SERVICIOS</span><h3>Estado de conexión</h3></div><Activity size={19} className="green-icon" /></div>
+          <div className="service-line"><span>API GridMind</span><span className="service-state"><i />{health?.status === 'UP' ? 'En línea' : 'Sin conexión'}</span></div>
+          <div className="service-line"><span>Base de datos</span><span className="service-state"><i />{health?.database || 'Esperando conexión'}</span></div>
+          <div className="service-line"><span>WebSocket</span><span className="service-state"><i />{health?.websocket || 'No disponible'}</span></div>
+          <div className="system-foot"><span>Java 25</span><span>{health?.activeStrategy || 'Estrategia sin cargar'}</span></div>
+        </article>
+      </div>
+      <section className="surface-card">
+        <div className="card-heading"><div><span className="eyebrow">MAQUETA FÍSICA</span><h3>Entrada de telemetría</h3></div><span className="count-chip">{telemetryStatus?.hardwareIngestionEnabled ? 'Receptor configurado' : 'Receptor pendiente'}</span></div>
+        <div className="service-line"><span>Simulador de datos</span><span className="service-state"><i />{simulatorActive ? 'Activo' : 'Pausado'}</span></div>
+        {isAdmin && <button className="button button-outline" disabled={!telemetryStatus || pendingId === 'simulator'} onClick={() => onSimulatorChange(!simulatorActive)}>{pendingId === 'simulator' ? 'Actualizando…' : simulatorActive ? 'Pausar simulador para usar hardware' : 'Reanudar simulador'}</button>}
+        {!telemetryStatus?.hardwareIngestionEnabled && <p className="quiet-note">El receptor ESP32 se habilita al configurar TELEMETRY_DEVICE_TOKEN en el backend y reiniciarlo.</p>}
+        {!simulatorActive && <p className="quiet-note">El simulador está pausado. Las lecturas de la maqueta podrán entrar sin mezclarse con valores simulados.</p>}
+        <p className="quiet-note">{telemetryStatus?.modelValidationNotice || 'La predicción experimental aún debe validarse con mediciones etiquetadas de la maqueta.'}</p>
+      </section>
+    </div>
+  );
+}
+
+export default function App() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authConnectionError, setAuthConnectionError] = useState('');
+  const [page, setPage] = useState('overview');
+  const [selectedAssetId, setSelectedAssetId] = useState('');
+  const [summary, setSummary] = useState(null);
+  const [substations, setSubstations] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [ranking, setRanking] = useState([]);
+  const [maintenances, setMaintenances] = useState([]);
+  const [simulations, setSimulations] = useState([]);
+  const [health, setHealth] = useState(null);
+  const [telemetryStatus, setTelemetryStatus] = useState(null);
+  const [claudeStatus, setClaudeStatus] = useState({ enabled: false, provider: 'Anthropic Claude', model: 'claude-sonnet-4-5' });
+  const [modelInfo, setModelInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState(null);
+  const [connectionError, setConnectionError] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [pendingId, setPendingId] = useState('');
+  const [explainingId, setExplainingId] = useState('');
+  const [explanations, setExplanations] = useState({});
+  const [explanationErrors, setExplanationErrors] = useState({});
+  const [claudePrediction, setClaudePrediction] = useState(null);
+  const [claudePredictionError, setClaudePredictionError] = useState('');
+  const [predictingAssetId, setPredictingAssetId] = useState('');
+
+  const assets = useMemo(() => substations.flatMap((substation) => (substation.transformers || []).map((asset) => ({
+    ...asset,
+    substationName: asset.substationName || substation.name,
+  }))), [substations]);
