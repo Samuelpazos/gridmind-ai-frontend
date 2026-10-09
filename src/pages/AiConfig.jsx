@@ -95,3 +95,52 @@ const AiConfig = () => {
             Evaluación por umbrales rígidos de tolerancia eléctrica (Temperatura &gt; 85°C, Vibración &gt; 4.5mm/s).
           </p>
         </div>
+
+        <div
+          onClick={() => handleApply('WEIGHTED_AGE_STRATEGY', false)}
+          className={`glass-panel p-6 rounded-2xl cursor-pointer transition-all space-y-3 ${
+            activeStrategy.includes('WEIGHTED_AGE') && !degradedMode
+              ? 'border-cyan-500 glow-cyan bg-slate-900/90'
+              : 'hover:border-slate-700'
+          }`}
+        >
+          <div className="flex items-center justify-between font-mono">
+            <span className="font-extrabold text-white text-base">4. Weighted Age Strategy (Ponderado Antigüedad)</span>
+            <ShieldCheck className="h-6 w-6 text-cyan-400" />
+          </div>
+          <p className="text-xs text-slate-300 font-mono">
+            Ponderación del riesgo priorizada por años de servicio y estrés acumulado.
+          </p>
+        </div>
+      </div>
+
+      {/* RNF-08 Fallback Banner */}
+      <div className="glass-panel rounded-2xl p-6 space-y-4 font-mono border-amber-500/60 glow-amber">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-7 w-7 text-amber-400 shrink-0" />
+            <div>
+              <h3 className="text-sm font-bold text-amber-200 uppercase">Simulación de Mecanismo Fallback IA (Requisito RNF-08)</h3>
+              <p className="text-xs text-amber-300/80">
+                Si la IA se degrada o falla, el sistema conmuta automáticamente a evaluación mediante reglas sin detenerse.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => handleApply(activeStrategy, !degradedMode)}
+            className={`px-5 py-2.5 rounded-xl font-mono font-black text-xs transition ${
+              degradedMode
+                ? 'bg-amber-500 text-slate-950 hover:bg-amber-400 shadow-lg glow-amber'
+                : 'bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700'
+            }`}
+          >
+            {degradedMode ? 'DESACTIVAR MODO DEGRADADO' : 'FORZAR MODO DEGRADADO (RNF-08)'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AiConfig;
