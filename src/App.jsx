@@ -237,3 +237,123 @@ function Overview({ summary, assets, ranking, alerts, setPage, loading }) {
 function AssetsPage({ substations, assets, onSelect, onClaudePredict, claudeEnabled, predictingId }) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('ALL');
+  const filtered = assets.filter((asset) => {
+    const matchesQuery = `${asset.name || ''} ${asset.code || ''} ${asset.substationName || ''}`.toLowerCase().includes(query.toLowerCase());
+    return matchesQuery && (filter === 'ALL' || asset.status === filter);
+  });
+
+  return (
+    <div className="page-stack">
+      <SectionHeading eyebrow="INVENTARIO DE RED" title="Activos" description="Explora las subestaciones y localiza rápidamente un transformador." />
+      <div className={`notice-banner ${claudeEnabled ? '' : 'error-banner'}`}><Sparkles size={17} /><span>{claudeEnabled ? 'Las predicciones de Claude se ejecutan manualmente al pulsar el botón de cada transformador; no se consulta la API en cada lectura.' : 'Para hacer predicciones con Claude, configura CLAUDE_API_KEY en el entorno del backend y reinícialo. Las predicciones locales Smile siguen funcionando.'}</span></div>
+      <section className="surface-card">
+        <div className="toolbar">
+          <label className="search-box"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar activo o subestación" /></label>
+          <label className="select-wrap"><span>Estado</span><select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="ALL">Todos</option><option value="NORMAL">Normal</option><option value="WARNING">Atención</option><option value="CRITICAL">Crítico</option><option value="FAILED">Fuera de servicio</option></select><ChevronDown size={15} /></label>
+        </div>
+        <AssetTable assets={filtered} onSelect={onSelect} onPredict={onClaudePredict} claudeEnabled={claudeEnabled} predictingId={predictingId} />
+      </section>
+      <div className="substation-grid">
+        {substations.map((substation) => (
+          <article className="substation-card" key={substation.id}>
+            <div className="substation-top"><span className="substation-symbol"><Factory size={18} /></span><StatusPill value={substation.status} /></div>
+            <h3>{substation.name || substation.code}</h3>
+            <p>{substation.location || substation.type || 'Subestación eléctrica'}</p>
+            <div className="substation-foot"><span><Zap size={14} />{substation.transformers?.length || 0} transformadores</span><span>{substation.code}</span></div>
+          </article>
+        ))}
+      </div>
+      {!substations.length && <div className="surface-card"><EmptyState icon={Factory} title="No hay subestaciones disponibles" detail="Verifica que los servicios Docker estén activos y vuelve a cargar los datos." /></div>}
+    </div>
+  );
+}
+
+function AlertsPage({ alerts, onAcknowledge, onExplain, explanations, explanationErrors, claudeEnabled, explainingId, pendingId }) {
+  const [filter, setFilter] = useState('OPEN');
+  const visible = alerts.filter((alert) => filter === 'ALL' || (filter === 'OPEN' ? !alert.acknowledged : alert.acknowledged));
+  return (
+    <div className="page-stack">
+      <SectionHeading eyebrow="CENTRO DE ATENCIÓN" title="Alertas" description="Identifica el activo, entiende el evento y registra cuándo fue revisado." action={<label className="select-wrap"><span>Mostrar</span><select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="OPEN">Pendientes</option><option value="ALL">Todas</option><option value="DONE">Reconocidas</option></select><ChevronDown size={15} /></label>} />
+      {!claudeEnabled && <div className="notice-banner"><Sparkles size={17} /><span>El asistente Claude no está configurado. Añade <code>CLAUDE_API_KEY</code> al archivo `.env` y reinicia el backend para habilitar explicaciones.</span></div>}
+      <div className="alert-page-list">
+        {visible.map((alert) => (
+          <article className={`alert-card ${alert.acknowledged ? 'acknowledged' : ''}`} key={alert.id}>
+            <span className={`alert-mark large ${statusClasses[alert.severity] || 'warning'}`}><AlertTriangle size={19} /></span>
+            <div className="alert-main">
+              <div className="alert-title-row"><h3>{alert.transformerCode || alert.transformerName || 'Evento de la red'}</h3><StatusPill value={alert.severity} /></div>
+              <p>{alert.message || 'Se detectó un cambio en el estado del activo.'}</p>
+              <div className="alert-meta"><span><Factory size={14} />{alert.substationName || 'Subestación sin identificar'}</span><span><Clock3 size={14} />{dateLabel(alert.createdAt)}</span>{alert.acknowledged && <span><CheckCircle2 size={14} />Revisada por {alert.acknowledgedBy || 'operador'}</span>}</div>
+              <div className="ai-explanation-actions">
+                <button className="button button-outline compact" onClick={() => onExplain(alert.id)} disabled={!claudeEnabled || explainingId === alert.id} title={claudeEnabled ? 'Generar explicación con Claude' : 'Configura CLAUDE_API_KEY para habilitar Claude'}>
+                  {explainingId === alert.id ? <Loader2 className="spin" size={15} /> : <Sparkles size={15} />}
+                  {explainingId === alert.id ? 'Consultando Claude…' : 'Explicar con Claude'}
+                </button>
+                {explanationErrors[alert.id] && <span className="ai-error">{explanationErrors[alert.id]}</span>}
+              </div>
+              {explanations[alert.id] && <div className="ai-explanation"><Sparkles size={16} /><div><strong>Explicación de Claude</strong><p>{explanations[alert.id].explanation}</p><small>{explanations[alert.id].model} · {dateLabel(explanations[alert.id].generatedAt)}</small></div></div>}
+            </div>
+            {!alert.acknowledged && <button className="button button-outline" onClick={() => onAcknowledge(alert.id)} disabled={pendingId === alert.id}>{pendingId === alert.id ? <Loader2 className="spin" size={16} /> : <Check size={16} />} Marcar revisada</button>}
+          </article>
+        ))}
+        {!visible.length && <div className="surface-card"><EmptyState icon={ShieldCheck} title={filter === 'OPEN' ? 'Sin alertas pendientes' : 'No hay alertas para mostrar'} detail="Cuando la red genere un evento, aparecerá aquí con su estado y hora." /></div>}
+      </div>
+    </div>
+  );
+}
+
+function SimulatorPage({ assets, history, onRefresh, selectedAssetId, onError }) {
+  const [transformerId, setTransformerId] = useState(selectedAssetId || '');
+  const [variableModified, setVariableModified] = useState('TEMPERATURE');
+  const [deltaPercent, setDeltaPercent] = useState(25);
+  const [result, setResult] = useState(null);
+  const [running, setRunning] = useState(false);
+
+  useEffect(() => {
+    if (selectedAssetId && assets.some((asset) => asset.id === selectedAssetId)) {
+      setTransformerId(selectedAssetId);
+    }
+  }, [assets, selectedAssetId]);
+
+  useEffect(() => {
+    if (!transformerId && assets.length) {
+      setTransformerId(assets[0].id);
+    }
+  }, [assets, transformerId]);
+
+  const simulate = async (event) => {
+    event.preventDefault();
+    setRunning(true);
+    setResult(null);
+    try {
+      const response = await runSimulation({ transformerId, variableModified, deltaPercent: Number(deltaPercent) });
+      setResult(response.data);
+      await onRefresh();
+    } catch (error) {
+      onError(error);
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  return (
+    <div className="page-stack">
+      <SectionHeading eyebrow="LABORATORIO WHAT-IF" title="Simulador de escenarios" description="Explora el efecto de una variación sin alterar las lecturas operativas reales." />
+      <div className="simulation-layout">
+        <form className="surface-card simulation-form" onSubmit={simulate}>
+          <div className="card-heading"><div><span className="eyebrow">CONFIGURA UNA PRUEBA</span><h3>Escenario hipotético</h3></div><span className="form-icon"><SlidersHorizontal size={18} /></span></div>
+          <label className="field-label">Transformador
+            <select required value={transformerId} onChange={(event) => setTransformerId(event.target.value)} disabled={!assets.length}>
+              {assets.length ? assets.map((asset) => <option key={asset.id} value={asset.id}>{asset.code} · {asset.name}</option>) : <option value="">Sin activos disponibles</option>}
+            </select>
+          </label>
+          <label className="field-label">Variable que quieres modificar
+            <select value={variableModified} onChange={(event) => setVariableModified(event.target.value)}>
+              <option value="TEMPERATURE">Temperatura</option><option value="VIBRATION">Vibración</option><option value="CURRENT">Corriente</option><option value="VOLTAGE">Voltaje</option>
+            </select>
+          </label>
+          <label className="field-label">Aumento simulado <strong className="range-value">+{deltaPercent}%</strong>
+            <input className="range-input" type="range" min="5" max="100" step="5" value={deltaPercent} onChange={(event) => setDeltaPercent(event.target.value)} />
+            <span className="range-ends"><small>+5%</small><small>+100%</small></span>
+          </label>
+          <button type="submit" className="button button-primary button-wide" disabled={running || !assets.length}>{running ? <Loader2 className="spin" size={17} /> : <Play size={16} fill="currentColor" />} {running ? 'Evaluando escenario…' : 'Ejecutar simulación'}</button>
+          <p className="privacy-note"><ShieldCheck size={15} />La simulación no cambia la base de datos operativa.</p>
