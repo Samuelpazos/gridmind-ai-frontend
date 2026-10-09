@@ -72,3 +72,40 @@ const Administration = () => {
           >
             <div className="font-bold text-sm text-amber-400 flex items-center gap-2">
               <Play className="h-4 w-4 fill-current" /> 2. DEGRADACIÓN GRADUAL
+            </div>
+            <p className="text-[11px] text-slate-400">Incremento térmico y vibracional progresivo en T-C-001.</p>
+          </button>
+
+          <button
+            onClick={() => handleUpdateSimulator(true, 'SUDDEN_FAILURE')}
+            className={`p-5 rounded-lg border text-left space-y-2 transition ${
+              scenario === 'SUDDEN_FAILURE' && simActive
+                ? 'bg-rose-950/60 border-rose-700 text-rose-300 glow-critical'
+                : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850'
+            }`}
+          >
+            <div className="font-bold text-sm text-rose-400 flex items-center gap-2">
+              <Play className="h-4 w-4 fill-current" /> 3. FALLA SÚBITA
+            </div>
+            <p className="text-[11px] text-slate-400">Pico brusco de corriente y sobrecalentamiento crítico.</p>
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between border-t border-slate-800 pt-4 font-mono text-xs">
+          <span className="text-slate-400">Estado Generación Telemetría: <strong className="text-white">{simActive ? 'ACTIVADO (Tick 3s)' : 'PAUSADO'}</strong></span>
+          <button
+            onClick={() => handleUpdateSimulator(!simActive, scenario)}
+            className={`px-4 py-2 rounded font-bold transition flex items-center gap-2 ${
+              simActive ? 'bg-rose-900/80 hover:bg-rose-800 text-rose-200 border border-rose-700' : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+            }`}
+          >
+            {simActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            {simActive ? 'Pausar Simulador' : 'Reanudar Simulador'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Administration;
