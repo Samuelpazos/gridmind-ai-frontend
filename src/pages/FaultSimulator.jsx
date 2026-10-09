@@ -70,3 +70,76 @@ const FaultSimulator = () => {
                 {gridData.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name} ({s.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-slate-300 font-bold mb-1">Transformador Objetivo</label>
+              <select
+                value={selectedTransId}
+                onChange={(e) => setSelectedTransId(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 font-bold outline-none cursor-pointer focus:border-cyan-500"
+              >
+                {transformers.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({t.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-slate-300 font-bold mb-1">Variable de Telemetría</label>
+              <select
+                value={variable}
+                onChange={(e) => setVariable(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 font-bold outline-none cursor-pointer focus:border-cyan-500"
+              >
+                <option value="TEMPERATURE">Temperatura (°C)</option>
+                <option value="VIBRATION">Vibración (mm/s)</option>
+                <option value="CURRENT">Corriente (A)</option>
+                <option value="VOLTAGE">Voltaje (kV)</option>
+              </select>
+            </div>
+
+            <div>
+              <div className="flex justify-between text-slate-300 font-bold mb-2">
+                <span>Magnitud de Incremento (%)</span>
+                <span className="text-cyan-400 font-black text-sm">+{deltaPercent}%</span>
+              </div>
+              <input
+                type="range"
+                min="5"
+                max="100"
+                step="5"
+                value={deltaPercent}
+                onChange={(e) => setDeltaPercent(e.target.value)}
+                className="w-full accent-cyan-400 cursor-pointer h-2 bg-slate-800 rounded-lg"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-cyan-600 via-indigo-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-extrabold py-3.5 rounded-xl flex items-center justify-center gap-2 transition shadow-xl shadow-cyan-950/60 font-mono text-xs border border-cyan-400/40 glow-cyan mt-4"
+            >
+              <Play className="h-4 w-4 fill-current animate-pulse" />
+              {loading ? 'Calculando Modelo...' : 'Ejecutar Simulación Hypothetical'}
+            </button>
+          </form>
+        </div>
+
+        {/* Results Panel */}
+        <div className="lg:col-span-2 space-y-6">
+          {simResult ? (
+            <div className="glass-panel rounded-2xl p-6 space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+                <div>
+                  <h3 className="text-lg font-extrabold text-white font-mono">
+                    Resultado Comparativo: {simResult.transformerName}
+                  </h3>
+                  <p className="text-xs text-slate-400 font-mono mt-0.5">
+                    Modificación simulada: <strong className="text-cyan-300">{simResult.variableModified} +{simResult.deltaPercent}%</strong>
+                  </p>
