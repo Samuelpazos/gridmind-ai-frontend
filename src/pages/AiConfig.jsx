@@ -46,3 +46,52 @@ const AiConfig = () => {
         <div
           onClick={() => handleApply('SUPERVISED_MODEL_STRATEGY', false)}
           className={`glass-panel p-6 rounded-2xl cursor-pointer transition-all space-y-3 ${
+            activeStrategy.includes('SUPERVISED') && !degradedMode
+              ? 'border-cyan-500 glow-cyan bg-slate-900/90'
+              : 'hover:border-slate-700'
+          }`}
+        >
+          <div className="flex items-center justify-between font-mono">
+            <span className="font-extrabold text-white text-base">1. Supervised Model (Random Forest)</span>
+            <ShieldCheck className="h-6 w-6 text-cyan-400" />
+          </div>
+          <p className="text-xs text-slate-300 font-mono">
+            Modelo supervisado entrenado nativamente en Java con Smile. Predice probabilidad exacta de falla y factores de mayor influjo.
+          </p>
+          <div className="text-xs text-cyan-300 font-mono font-bold">Precisión: 89% • Recall: 91% (&gt;85%)</div>
+        </div>
+
+        <div
+          onClick={() => handleApply('ISOLATION_FOREST_STRATEGY', false)}
+          className={`glass-panel p-6 rounded-2xl cursor-pointer transition-all space-y-3 ${
+            activeStrategy.includes('ISOLATION') && !degradedMode
+              ? 'border-cyan-500 glow-cyan bg-slate-900/90'
+              : 'hover:border-slate-700'
+          }`}
+        >
+          <div className="flex items-center justify-between font-mono">
+            <span className="font-extrabold text-white text-base">2. Isolation Forest (Detección Anomalías)</span>
+            <BrainCircuit className="h-6 w-6 text-cyan-400" />
+          </div>
+          <p className="text-xs text-slate-300 font-mono">
+            Detección no supervisada de anomalías estadísticas aisladas en la telemetría multivariada.
+          </p>
+          <div className="text-xs text-cyan-300 font-mono font-bold">Calcula Anomaly Score en Tiempo Real</div>
+        </div>
+
+        <div
+          onClick={() => handleApply('THRESHOLD_STRATEGY', false)}
+          className={`glass-panel p-6 rounded-2xl cursor-pointer transition-all space-y-3 ${
+            activeStrategy.includes('THRESHOLD') && !degradedMode
+              ? 'border-amber-500 glow-amber bg-slate-900/90'
+              : 'hover:border-slate-700'
+          }`}
+        >
+          <div className="flex items-center justify-between font-mono">
+            <span className="font-extrabold text-white text-base">3. Threshold Strategy (Reglas de Umbral)</span>
+            <Sliders className="h-6 w-6 text-amber-400" />
+          </div>
+          <p className="text-xs text-slate-300 font-mono">
+            Evaluación por umbrales rígidos de tolerancia eléctrica (Temperatura &gt; 85°C, Vibración &gt; 4.5mm/s).
+          </p>
+        </div>
