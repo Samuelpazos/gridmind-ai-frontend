@@ -597,3 +597,123 @@ export default function App() {
     setExplanationErrors((current) => ({ ...current, [id]: '' }));
     try {
       const response = await explainAlert(id);
+      setExplanations((current) => ({ ...current, [id]: response.data }));
+    } catch (error) {
+      const message = error.response?.data?.message || errorText(error);
+      setExplanationErrors((current) => ({ ...current, [id]: message }));
+    } finally {
+      setExplainingId('');
+    }
+  };
+
+  const handleClaudePrediction = async (transformerId) => {
+    setPredictingAssetId(transformerId);
+    setClaudePrediction(null);
+    setClaudePredictionError('');
+    try {
+      const response = await predictComponentWithClaude(transformerId);
+      setClaudePrediction(response.data);
+    } catch (error) {
+      setClaudePredictionError(error.response?.data?.message || errorText(error));
+    } finally {
+      setPredictingAssetId('');
+    }
+  };
+
+  const handleMaintenance = async (id) => {
+    setPendingId(id);
+    await runAction(() => completeMaintenance(id), 'Mantenimiento registrado como completado.');
+    setPendingId('');
+  };
+
+  const handleStrategyChange = async (strategy, forceDegradedMode) => {
+    await runAction(() => setStrategyConfig(strategy, forceDegradedMode), 'Configuración de IA actualizada.');
+  };
+
+  const handleSimulatorChange = async (active) => {
+    setPendingId('simulator');
+    await runAction(() => setSimulatorConfig(active), active
+      ? 'Simulador reanudado.'
+      : 'Simulador pausado. Ya puedes enviar lecturas físicas de la maqueta.');
+    setPendingId('');
+  };
+
+  const renderPage = () => {
+    if (page === 'assets') return <AssetsPage substations={substations} assets={assets} onSelect={(id) => { setSelectedAssetId(id); setPage('simulator'); }} onClaudePredict={handleClaudePrediction} claudeEnabled={claudeStatus.enabled} predictingId={predictingAssetId} />;
+    if (page === 'alerts') return <AlertsPage alerts={alerts} onAcknowledge={handleAcknowledge} onExplain={handleExplain} explanations={explanations} explanationErrors={explanationErrors} claudeEnabled={claudeStatus.enabled} explainingId={explainingId} pendingId={pendingId} />;
+    if (page === 'simulator') return <SimulatorPage assets={assets} history={simulations} onRefresh={refreshData} selectedAssetId={selectedAssetId} onError={(error) => { setActionError(errorText(error)); console.error('No se pudo ejecutar la simulación:', error); }} />;
+    if (page === 'operations') return <OperationsPage maintenances={maintenances} health={health} modelInfo={modelInfo} telemetryStatus={telemetryStatus} onComplete={handleMaintenance} pendingId={pendingId} onStrategyChange={handleStrategyChange} onSimulatorChange={handleSimulatorChange} isAdmin={currentUser.role === 'ADMIN'} />;
+    return <Overview summary={summary} assets={assets} ranking={ranking} alerts={alerts} setPage={setPage} loading={loading} />;
+  };
+
+  return (
+    <div className="app-shell">
+      <aside className="app-sidebar">
+        <button className="brand" onClick={() => setPage('overview')} aria-label="Ir al resumen">
+          <span className="brand-mark"><Zap size={20} fill="currentColor" /></span>
+          <span className="brand-text"><strong>gridmind<span>AI</span></strong><small>ENERGY MONITORING</small></span>
+        </button>
+        <div className="workspace-label">ESPACIO DE TRABAJO</div>
+        <nav className="side-navigation" aria-label="Navegación principal">
+          {navigation.map(({ id, label, description, icon: Icon }) => (
+            <button key={id} className={`nav-item ${page === id ? 'active' : ''}`} onClick={() => setPage(id)} title={description}>
+              <Icon size={18} /><span>{label}</span>{id === 'alerts' && alerts.some((alert) => !alert.acknowledged) && <i className="nav-alert-dot" />}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-bottom">
+          <div className="help-card"><span className="help-icon"><Sparkles size={16} /></span><strong>Red más inteligente</strong><p>Usa el simulador para explorar escenarios sin riesgo.</p><button onClick={() => setPage('simulator')}>Abrir simulador <ArrowUpRight size={14} /></button></div>
+          <div className="sidebar-user"><span className="avatar">{currentUser.displayName.slice(0, 2).toUpperCase()}</span><span className="sidebar-user-copy"><strong>{currentUser.displayName}</strong><small>{currentUser.role === 'ADMIN' ? 'Administrador' : 'Operador'}</small></span><button className="logout-button" onClick={handleLogout} aria-label="Cerrar sesión" title="Cerrar sesión"><LogOut size={16} /></button></div>
+        </div>
+      </aside>
+
+      <main className="app-main">
+        <header className="topbar">
+          <div className="breadcrumb"><span>GridMind</span><span className="breadcrumb-separator">/</span><strong>{currentPage.label}</strong></div>
+          <div className="topbar-actions">
+            <span className={`connection-pill ${health?.status === 'UP' ? 'connected' : 'disconnected'}`}><i />{health?.status === 'UP' ? 'Sistema conectado' : 'Sin conexión'}</span>
+            <button className="icon-button refresh-button" onClick={refreshData} aria-label="Actualizar datos" disabled={refreshing}><RefreshCw size={17} className={refreshing ? 'spin' : ''} /></button>
+            <span className="updated-label">{updatedAt ? `Actualizado ${updatedAt.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}` : 'Esperando datos'}</span>
+          </div>
+        </header>
+
+        <div className="mobile-nav">
+          {navigation.map(({ id, label, icon: Icon }) => <button key={id} className={page === id ? 'active' : ''} onClick={() => setPage(id)}><Icon size={17} /><span>{label}</span></button>)}
+        </div>
+
+        <div className="page-container">
+          {connectionError && <div className="notice-banner error-banner"><AlertTriangle size={18} /><span>{connectionError}</span><button onClick={refreshData}>Reintentar</button></div>}
+          {actionError && <div className="notice-banner error-banner"><AlertTriangle size={18} /><span>{actionError}</span><button onClick={() => setActionError('')}>Cerrar</button></div>}
+          {notice && <div className="notice-banner success-banner"><CheckCircle2 size={18} /><span>{notice}</span><button onClick={() => setNotice('')}>Cerrar</button></div>}
+          <div className="page-title-row">
+            <div><span className="page-kicker">GRIDMIND AI <span>·</span> {currentPage.label.toUpperCase()}</span><h1>{currentPage.id === 'overview' ? `Hola, ${currentUser.displayName}` : currentPage.label}</h1><p>{currentPage.description}</p></div>
+            <div className="title-date"><Clock3 size={15} />{new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+          </div>
+          {renderPage()}
+          <footer className="page-footer"><span>GRIDMIND AI <i>·</i> Supervisión de redes eléctricas</span><span>Java 25 <i>·</i> Actualización automática cada 10 s</span></footer>
+        </div>
+      </main>
+      {(claudePrediction || claudePredictionError) && (
+        <div className="dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) { setClaudePrediction(null); setClaudePredictionError(''); } }}>
+          <section className="prediction-dialog" role="dialog" aria-modal="true" aria-labelledby="prediction-dialog-title">
+            <div className="dialog-heading"><span className="result-spark"><Sparkles size={19} /></span><button className="icon-button" onClick={() => { setClaudePrediction(null); setClaudePredictionError(''); }} aria-label="Cerrar resultado">×</button></div>
+            {claudePredictionError ? (
+              <div className="dialog-error"><AlertTriangle size={21} /><h2 id="prediction-dialog-title">No se pudo generar la predicción</h2><p>{claudePredictionError}</p><button className="button button-outline" onClick={() => { setClaudePrediction(null); setClaudePredictionError(''); }}>Cerrar</button></div>
+            ) : claudePrediction && (
+              <>
+                <span className="eyebrow">ESTIMACIÓN SOLICITADA A CLAUDE</span>
+                <h2 id="prediction-dialog-title">{claudePrediction.transformerCode} · {claudePrediction.transformerName}</h2>
+                <p className="prediction-disclaimer">{claudePrediction.disclaimer}</p>
+                <div className="prediction-score"><div><span>Probabilidad estimada de falla</span><strong>{probabilityLabel(claudePrediction.failureProbability)}</strong></div><StatusPill value={claudePrediction.riskLevel} /></div>
+                <div className="prediction-measurements"><strong>Lecturas enviadas al modelo</strong><div>{Object.entries(claudePrediction.sensorValues || {}).map(([name, value]) => <span key={name}>{name.replaceAll('_', ' ')} <b>{value}</b></span>)}</div></div>
+                <div className="prediction-factors"><strong>Factores considerados</strong><ul>{claudePrediction.topFactors?.map((factor, index) => <li key={`${index}-${factor}`}>{factor}</li>)}</ul></div>
+                <div className="recommendation-box"><Sparkles size={17} /><p><strong>Análisis de Claude</strong><br />{claudePrediction.explanation}</p></div>
+                <p className="dialog-footnote">{claudePrediction.model} · {dateLabel(claudePrediction.generatedAt)} · Esta estimación no modifica el estado operativo del transformador.</p>
+              </>
+            )}
+          </section>
+        </div>
+      )}
+    </div>
+  );
+}
