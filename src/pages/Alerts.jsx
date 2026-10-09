@@ -82,3 +82,45 @@ const Alerts = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/60 text-xs font-mono">
+            {filteredAlerts.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="p-8 text-center text-slate-500 font-mono">
+                  No se encontraron alertas para los filtros seleccionados.
+                </td>
+              </tr>
+            ) : (
+              filteredAlerts.map((alt) => (
+                <tr key={alt.id} className="hover:bg-slate-850/50 transition">
+                  <td className="p-4"><StatusBadge status={alt.severity} size="sm" /></td>
+                  <td className="p-4 font-bold text-slate-100">
+                    <div>{alt.transformerName || alt.transformerCode}</div>
+                    <div className="text-[10px] text-slate-400 font-normal">{alt.substationName}</div>
+                  </td>
+                  <td className="p-4 text-slate-200 max-w-md">{alt.message}</td>
+                  <td className="p-4 text-cyan-400 font-semibold">{alt.source}</td>
+                  <td className="p-4 text-slate-400 text-[11px]">{new Date(alt.createdAt).toLocaleString()}</td>
+                  <td className="p-4 text-right">
+                    {alt.acknowledged ? (
+                      <span className="inline-flex items-center gap-1.5 text-emerald-300 font-bold text-[11px] bg-emerald-950/80 px-3 py-1 rounded-full border border-emerald-500/50 glow-emerald">
+                        <CheckCircle className="h-3.5 w-3.5 text-emerald-400" /> Reconocida ({alt.acknowledgedBy})
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleAcknowledge(alt.id)}
+                        className="bg-cyan-600 hover:bg-cyan-500 text-white px-3.5 py-1.5 rounded-xl font-bold text-[11px] transition shadow-md glow-cyan"
+                      >
+                        Reconocer Alerta
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+export default Alerts;
