@@ -72,3 +72,41 @@ const Sidebar = () => {
               >
                 <div className="flex items-center gap-3">
                   <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 ${isActive ? 'bg-cyan-500 text-slate-950 font-black' : 'bg-slate-900 text-slate-400'}`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <span className="truncate">{item.label}</span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  {item.id === 'alerts' && unackAlertsCount > 0 ? (
+                    <span className="bg-rose-600 text-white font-mono text-[10px] px-2 py-0.5 rounded-full font-black animate-bounce shadow-lg shadow-rose-950">
+                      {unackAlertsCount}
+                    </span>
+                  ) : (
+                    <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded uppercase font-extrabold ${isActive ? 'bg-cyan-950 text-cyan-300 border border-cyan-500/40' : 'bg-slate-900 text-slate-600'}`}>
+                      {item.tag}
+                    </span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Footer Info */}
+      <div className="p-4 border-t border-slate-800/80 bg-slate-950/80 text-[11px] text-slate-300 font-mono">
+        <div className="flex items-center justify-between">
+          <span className="text-emerald-400 font-extrabold flex items-center gap-1.5 text-glow-emerald">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+            IOT OPERACIONAL
+          </span>
+          <span className="text-cyan-400 font-bold">Java 25</span>
+        </div>
+        <p className="text-[10px] text-slate-400 mt-1 font-semibold truncate">Smile Native ML • SCADA Control</p>
+      </div>
+    </aside>
+  );
+};
+
+export default Sidebar;
