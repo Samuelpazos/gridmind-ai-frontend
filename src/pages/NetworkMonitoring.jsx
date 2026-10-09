@@ -89,3 +89,49 @@ const NetworkMonitoring = () => {
                         </div>
                         <span className="font-extrabold text-slate-100 text-sm group-hover:text-cyan-400 transition">{trans.name}</span>
                       </div>
+                      <StatusBadge status={trans.status} size="sm" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-xs font-mono text-slate-400 bg-slate-900/80 p-3 rounded-lg border border-slate-800">
+                      <div>Capacidad: <strong className="text-slate-200 block">{trans.ratingKva} kVA</strong></div>
+                      <div>Antigüedad: <strong className="text-slate-200 block">{trans.ageYears} años</strong></div>
+                      <div>Prob. Falla: <strong className="text-cyan-400 block font-bold">{(trans.failureProbability * 100).toFixed(1)}%</strong></div>
+                      <div>Score Prioridad: <strong className="text-rose-400 block font-bold">{trans.priorityScore?.toFixed(1)}</strong></div>
+                    </div>
+
+                    {/* Sensor Telemetry List */}
+                    <div className="space-y-2 pt-1">
+                      <p className="text-[11px] text-slate-400 font-mono font-semibold flex items-center gap-1.5">
+                        <Radio className="h-3.5 w-3.5 text-cyan-400 animate-pulse" />
+                        Sensores de Telemetría Activos:
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 font-mono text-xs">
+                        {trans.sensors?.map((s) => (
+                          <div key={s.id} className="bg-slate-900/90 px-3 py-1.5 rounded-lg border border-slate-800 flex items-center justify-between">
+                            <span className="text-slate-400 text-[11px]">{s.type}:</span>
+                            <span className="text-cyan-300 font-bold">
+                              {s.latestReading ? `${s.latestReading.value} ${s.latestReading.unit}` : '--'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleSelectTransformer(trans.id)}
+                      className="w-full flex items-center justify-center gap-1.5 text-xs text-cyan-400 hover:text-cyan-300 bg-slate-900 hover:bg-slate-850 py-2.5 rounded-lg font-mono font-bold transition border border-slate-800 shadow-sm"
+                    >
+                      Ver Analítica Detallada de Transformador <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default NetworkMonitoring;
