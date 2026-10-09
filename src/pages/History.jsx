@@ -44,3 +44,49 @@ const HistoryPage = () => {
           <input
             type="text"
             placeholder="Buscar por evento o descripción..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="bg-transparent text-xs text-slate-200 outline-none w-full font-mono placeholder:text-slate-600"
+          />
+        </div>
+      </div>
+
+      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-slate-950 text-slate-400 font-mono text-xs border-b border-slate-800">
+              <th className="p-4 font-semibold">Tipo Evento</th>
+              <th className="p-4 font-semibold">Tipo Entidad</th>
+              <th className="p-4 font-semibold">ID Entidad</th>
+              <th className="p-4 font-semibold">Descripción del Evento</th>
+              <th className="p-4 font-semibold text-right">Timestamp</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800/60 text-xs font-mono">
+            {filteredLogs.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="p-8 text-center text-slate-500">
+                  No hay registros de historial coincidentes.
+                </td>
+              </tr>
+            ) : (
+              filteredLogs.map((log) => (
+                <tr key={log.id} className="hover:bg-slate-850/50 transition">
+                  <td className="p-4 font-bold text-cyan-400">{log.eventType}</td>
+                  <td className="p-4 text-slate-300">{log.entityType}</td>
+                  <td className="p-4 text-slate-400 text-[11px]">{log.entityId}</td>
+                  <td className="p-4 text-slate-200 max-w-lg">{log.description}</td>
+                  <td className="p-4 text-right text-slate-400 text-[11px]">
+                    {new Date(log.timestamp).toLocaleString()}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+export default HistoryPage;
