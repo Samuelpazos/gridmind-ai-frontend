@@ -105,3 +105,57 @@ const ModelInfo = () => {
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <h3 className="text-base font-extrabold text-emerald-300 flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+              {refScenarioResult.scenarioName} - VERIFICADO SATISFACTORIAMENTE
+            </h3>
+            <span className="text-xs bg-emerald-950 text-emerald-300 border border-emerald-500 px-3 py-1 rounded-full font-bold">
+              Cumple Requisito Sección 8
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+            <div className="space-y-2 bg-slate-950/90 p-4 rounded-xl border border-slate-800">
+              <p className="text-slate-400 font-bold uppercase">Entradas Evaluadas:</p>
+              <ul className="space-y-1.5 text-slate-200">
+                <li>• Temperatura: <strong className="text-cyan-300">{refScenarioResult.inputs.temperatura}</strong></li>
+                <li>• Voltaje: <strong className="text-cyan-300">{refScenarioResult.inputs.voltaje}</strong></li>
+                <li>• Corriente: <strong className="text-cyan-300">{refScenarioResult.inputs.corriente}</strong></li>
+                <li>• Vibración: <strong className="text-cyan-300">{refScenarioResult.inputs.vibracion}</strong></li>
+                <li>• Edad Transformador: <strong className="text-cyan-300">{refScenarioResult.inputs.edad}</strong></li>
+              </ul>
+            </div>
+
+            <div className="space-y-2 bg-slate-950/90 p-4 rounded-xl border border-slate-800">
+              <p className="text-slate-400 font-bold uppercase">Resultado Esperado Obtenido:</p>
+              <p>Nivel de Riesgo: <strong className="text-rose-400 font-extrabold text-sm">{refScenarioResult.riskLevel}</strong> (Esperado: HIGH)</p>
+              <p>Probabilidad de Falla: <strong className="text-cyan-400 font-extrabold text-sm">{refScenarioResult.failureProbabilityPercent}</strong> (Esperado: 70% - 85%)</p>
+              <p className="text-emerald-300 pt-2 font-bold">Recomendación Generada:</p>
+              <p className="text-slate-100 bg-slate-900 p-2.5 rounded-lg border border-slate-800 font-bold">"{refScenarioResult.recommendation}"</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Feature Importance Chart */}
+      <div className="glass-panel rounded-2xl p-6 space-y-6">
+        <h3 className="text-base font-bold text-white font-mono flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-cyan-400" />
+          Importancia de Variables en el Modelo (Feature Importances)
+        </h3>
+
+        <div className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={featureChartData} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+              <XAxis type="number" stroke="#64748b" fontSize={11} unit="%" />
+              <YAxis type="category" dataKey="feature" stroke="#94a3b8" fontSize={12} width={150} tickLine={false} />
+              <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#06b6d4', borderRadius: '12px' }} />
+              <Bar dataKey="importance" fill="#06b6d4" radius={[0, 6, 6, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ModelInfo;
