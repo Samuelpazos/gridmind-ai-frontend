@@ -32,3 +32,37 @@ const Maintenance = () => {
       <div>
         <h2 className="text-2xl font-bold text-white font-mono tracking-tight flex items-center gap-2">
           <Wrench className="h-6 w-6 text-cyan-400" />
+          Gestión de Recomendaciones y Mantenimiento Preventivo
+        </h2>
+        <p className="text-slate-400 text-xs font-mono mt-1">
+          Programación y registro de intervenciones para restablecer transformadores a estado NORMAL (Sección 17)
+        </p>
+      </div>
+
+      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-slate-950 text-slate-400 font-mono text-xs border-b border-slate-800">
+              <th className="p-4 font-semibold">Transformador</th>
+              <th className="p-4 font-semibold">Recomendación</th>
+              <th className="p-4 font-semibold">Estado Mantenimiento</th>
+              <th className="p-4 font-semibold">Fecha Programada</th>
+              <th className="p-4 font-semibold">Resultado / Notas</th>
+              <th className="p-4 font-semibold text-right">Acción</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800/60 text-xs font-mono">
+            {list.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="p-8 text-center text-slate-500">
+                  No hay mantenimientos ni recomendaciones registradas.
+                </td>
+              </tr>
+            ) : (
+              list.map((m) => (
+                <tr key={m.id} className="hover:bg-slate-850/50 transition">
+                  <td className="p-4 font-bold text-slate-200">
+                    <div>{m.transformerName || m.transformerCode}</div>
+                  </td>
+                  <td className="p-4 text-slate-300 max-w-sm">{m.recommendation}</td>
+                  <td className="p-4">
