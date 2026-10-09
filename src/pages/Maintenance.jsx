@@ -66,3 +66,38 @@ const Maintenance = () => {
                   </td>
                   <td className="p-4 text-slate-300 max-w-sm">{m.recommendation}</td>
                   <td className="p-4">
+                    {m.status === 'COMPLETED' ? (
+                      <span className="bg-emerald-950 text-emerald-400 border border-emerald-800 px-2.5 py-1 rounded-full text-[10px] font-bold">
+                        COMPLETADO
+                      </span>
+                    ) : (
+                      <span className="bg-amber-950 text-amber-400 border border-amber-800 px-2.5 py-1 rounded-full text-[10px] font-bold">
+                        {m.status}
+                      </span>
+                    )}
+                  </td>
+                  <td className="p-4 text-slate-400 text-[11px]">
+                    {m.scheduledDate ? new Date(m.scheduledDate).toLocaleDateString() : 'Pendiente'}
+                  </td>
+                  <td className="p-4 text-slate-400 text-[11px]">{m.resultNotes || '--'}</td>
+                  <td className="p-4 text-right">
+                    {m.status !== 'COMPLETED' && (
+                      <button
+                        onClick={() => handleComplete(m.id)}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded font-bold text-[11px] transition shadow-sm"
+                      >
+                        Completar y Restablecer
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+export default Maintenance;
