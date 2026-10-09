@@ -42,3 +42,47 @@ const Header = () => {
                   ? 'text-white border-blue-500 font-bold'
                   : 'text-slate-400 border-transparent hover:text-white'
               }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Right Header Actions (Tractian Style) */}
+      <div className="flex items-center gap-5 text-sm">
+        <div className="hidden md:flex items-center gap-4 text-slate-400 font-medium text-xs">
+          <span className="flex items-center gap-1 cursor-pointer hover:text-white">
+            <Globe className="h-4 w-4" /> ES
+          </span>
+          <span className="flex items-center gap-1 cursor-pointer hover:text-white">
+            <Phone className="h-4 w-4" /> Soporte 24/7
+          </span>
+          <button
+            onClick={() => setActiveTab('alerts')}
+            className="relative flex items-center gap-1 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-slate-300 cursor-pointer hover:border-slate-700"
+          >
+            <Bell className="h-4 w-4 text-rose-400" />
+            <span>Alertas</span>
+            {unackAlertsCount > 0 && (
+              <span className="bg-rose-600 text-white font-bold px-1.5 py-0.2 rounded-full text-[10px] animate-pulse">
+                {unackAlertsCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Primary Action Button */}
+        <button
+          onClick={() => setActiveTab('simulator')}
+          className="btn-tractian-primary text-xs tracking-wide uppercase"
+        >
+          <Play className="h-4 w-4 fill-current" />
+          Solicita una Demo / Simulación
+        </button>
+      </div>
+    </header>
+  );
+};
+
+export default Header;
