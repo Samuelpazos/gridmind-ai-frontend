@@ -143,3 +143,76 @@ const FaultSimulator = () => {
                   <p className="text-xs text-slate-400 font-mono mt-0.5">
                     Modificación simulada: <strong className="text-cyan-300">{simResult.variableModified} +{simResult.deltaPercent}%</strong>
                   </p>
+                </div>
+                <span className="text-xs text-slate-400 font-mono bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
+                  ID: {simResult.simulationId?.substring(0, 8)}
+                </span>
+              </div>
+
+              {/* State Comparative Split Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 font-mono">
+                {/* Before State */}
+                <div className="bg-slate-950/90 p-5 rounded-xl border border-slate-800 space-y-3">
+                  <span className="text-xs text-slate-400 uppercase font-bold tracking-wider">ESTADO OPERATIVO INICIAL</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300 text-xs">Estado Componente:</span>
+                    <StatusBadge status={simResult.originalState} />
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Nivel de Riesgo:</span>
+                    <span className="text-slate-200 font-bold">{simResult.originalRisk}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Probabilidad Falla:</span>
+                    <span className="text-cyan-400 font-bold">{(simResult.originalProbability * 100).toFixed(1)}%</span>
+                  </div>
+                </div>
+
+                {/* Simulated State */}
+                <div className="bg-slate-950/90 p-5 rounded-xl border border-rose-500/50 glow-rose space-y-3">
+                  <span className="text-xs text-rose-400 uppercase font-bold tracking-wider">RESULTADO SIMULADO</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300 text-xs">Nuevo Estado:</span>
+                    <StatusBadge status={simResult.simulatedState} />
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Nuevo Riesgo:</span>
+                    <span className="text-rose-400 font-extrabold">{simResult.simulatedRisk}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Nueva Prob. Falla:</span>
+                    <span className="text-rose-400 font-extrabold">{(simResult.simulatedProbability * 100).toFixed(1)}%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Substation Effect */}
+              <div className="bg-slate-950/90 p-4 rounded-xl border border-slate-800 flex items-center justify-between font-mono text-xs">
+                <div className="flex items-center gap-2 text-slate-300">
+                  <ShieldAlert className="h-5 w-5 text-amber-400" />
+                  <span>Impacto Simulado sobre Subestación ({simResult.substationName}):</span>
+                </div>
+                <StatusBadge status={simResult.substationSimulatedState} />
+              </div>
+
+              {/* Recommendation Box */}
+              <div className="bg-cyan-950/40 border border-cyan-500/60 p-5 rounded-xl space-y-2 font-mono text-xs glow-cyan">
+                <span className="text-cyan-300 font-extrabold flex items-center gap-1.5 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-cyan-400" /> Recomendación Preventiva Generada:
+                </span>
+                <p className="text-slate-100 text-sm leading-relaxed">{simResult.recommendation}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="glass-panel rounded-2xl p-12 text-center text-slate-400 font-mono space-y-4">
+              <SlidersHorizontal className="h-12 w-12 mx-auto text-cyan-400 animate-pulse" />
+              <p className="text-sm">Configura los parámetros a la izquierda y presiona "Ejecutar Simulación Hypothetical".</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default FaultSimulator;
