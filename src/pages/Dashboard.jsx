@@ -4,7 +4,6 @@ import StatusBadge from '../components/StatusBadge';
 import { setSimulatorConfig } from '../services/api';
 import {
   Activity,
-  ShieldCheck,
   Zap,
   TrendingUp,
   SlidersHorizontal,
@@ -16,8 +15,7 @@ import {
   ArrowRight,
   AlertTriangle,
   Flame,
-  CheckCircle2,
-  Bell
+  CheckCircle2
 } from 'lucide-react';
 
 const tractianModules = [

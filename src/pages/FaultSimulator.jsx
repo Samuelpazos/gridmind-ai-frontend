@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useGrid } from '../context/GridContext';
 import { runSimulation } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
-import { SlidersHorizontal, Play, ArrowRight, ShieldAlert, CheckCircle2, AlertTriangle, Flame } from 'lucide-react';
+import { SlidersHorizontal, Play, ShieldAlert, CheckCircle2 } from 'lucide-react';
 
 const FaultSimulator = () => {
   const { gridData } = useGrid();
@@ -206,7 +206,7 @@ const FaultSimulator = () => {
           ) : (
             <div className="glass-panel rounded-2xl p-12 text-center text-slate-400 font-mono space-y-4">
               <SlidersHorizontal className="h-12 w-12 mx-auto text-cyan-400 animate-pulse" />
-              <p className="text-sm">Configura los parámetros a la izquierda y presiona "Ejecutar Simulación Hypothetical".</p>
+              <p className="text-sm">Configura los parámetros a la izquierda y presiona &quot;Ejecutar Simulación Hypothetical&quot;.</p>
             </div>
           )}
         </div>

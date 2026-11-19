@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getMaintenances, completeMaintenance } from '../services/api';
-import { Wrench, CheckCircle, Clock } from 'lucide-react';
+import { Wrench } from 'lucide-react';
 
 const Maintenance = () => {
   const [list, setList] = useState([]);

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useGrid } from '../context/GridContext';
 import StatusBadge from '../components/StatusBadge';
 import { Network, Building2, Zap, Radio, ChevronRight, Filter } from 'lucide-react';
+import { readingSourceLabel } from '../utils/telemetry';
 
 const NetworkMonitoring = () => {
   const { gridData, setActiveTab, setSelectedTransformerId } = useGrid();
@@ -111,6 +112,7 @@ const NetworkMonitoring = () => {
                             <span className="text-slate-400 text-[11px]">{s.type}:</span>
                             <span className="text-cyan-300 font-bold">
                               {s.latestReading ? `${s.latestReading.value} ${s.latestReading.unit}` : '--'}
+                              {readingSourceLabel(s.latestReading?.source) && <small className="reading-source">{readingSourceLabel(s.latestReading.source)}</small>}
                             </span>
                           </div>
                         ))}

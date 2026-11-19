@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGrid } from '../context/GridContext';
-import { Zap, Globe, Phone, User, Play, Bell } from 'lucide-react';
+import { Zap, Globe, Phone, Play, Bell } from 'lucide-react';
 
 const navTabs = [
   { id: 'dashboard', label: 'Inicio' },
@@ -14,7 +14,7 @@ const navTabs = [
 ];
 
 const Header = () => {
-  const { activeTab, setActiveTab, alerts, summary } = useGrid();
+  const { activeTab, setActiveTab, alerts } = useGrid();
   const unackAlertsCount = alerts.filter(a => !a.acknowledged).length;
 
   return (

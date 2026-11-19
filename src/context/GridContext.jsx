@@ -10,7 +10,7 @@ export const GridProvider = ({ children }) => {
   const [alerts, setAlerts] = useState([]);
   const [selectedTransformerId, setSelectedTransformerId] = useState('trans-005'); // Default to T-S-001 (Critical demo transformer)
   const [loading, setLoading] = useState(true);
-  const [isLiveConnected, setIsLiveConnected] = useState(true);
+  const isLiveConnected = true;
   const [lastUpdated, setLastUpdated] = useState(new Date());
 
   const refreshData = useCallback(async () => {

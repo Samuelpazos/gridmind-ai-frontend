@@ -2,6 +2,27 @@ import { useState } from 'react';
 import { AlertCircle, Eye, EyeOff, LockKeyhole, Zap } from 'lucide-react';
 import { getCsrfToken, login, registerAccount } from '../services/api';
 
+const setEmailValidationMessage = (event) => {
+  const input = event.currentTarget;
+  input.setCustomValidity(
+    input.validity.valueMissing
+      ? 'Introduce tu correo electrónico.'
+      : 'Introduce una dirección de correo electrónico válida.'
+  );
+};
+
+const clearValidationMessage = (event) => {
+  event.currentTarget.setCustomValidity('');
+};
+
+const getAuthenticationErrorMessage = (requestError) => (
+  requestError.response?.data?.message
+    || (requestError.message === 'Network Error'
+      ? 'No se pudo conectar con el backend. Comprueba que el servicio esté iniciado.'
+      : requestError.message)
+    || 'No se pudo completar el acceso.'
+);
+
 export default function AuthPage({ onAuthenticated, connectionError }) {
   const [mode, setMode] = useState('login');
   const [displayName, setDisplayName] = useState('');
@@ -9,9 +30,11 @@ export default function AuthPage({ onAuthenticated, connectionError }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const registering = mode === 'register';
+  const administrator = mode === 'admin';
 
   const submit = async (event) => {
     event.preventDefault();
@@ -27,17 +50,21 @@ export default function AuthPage({ onAuthenticated, connectionError }) {
       if (registering) {
         await registerAccount({ displayName, email, password });
       }
-      const response = await login({ email, password });
-      onAuthenticated(response.data);
+      const response = await login({ email, password, administrator });
+      onAuthenticated(response.data, administrator);
     } catch (requestError) {
-      setError(requestError.response?.data?.message || requestError.message || 'No se pudo completar el acceso.');
+      setError(getAuthenticationErrorMessage(requestError));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const switchMode = () => {
-    setMode(registering ? 'login' : 'register');
+  const switchMode = (nextMode) => {
+    setMode(nextMode);
+    setPassword('');
+    setConfirmPassword('');
+    setPasswordVisible(false);
+    setConfirmPasswordVisible(false);
     setError('');
   };
 
@@ -46,52 +73,74 @@ export default function AuthPage({ onAuthenticated, connectionError }) {
       <section className="auth-card" aria-labelledby="auth-title">
         <div className="auth-brand">
           <span className="brand-mark"><Zap size={20} fill="currentColor" /></span>
-          <span className="brand-text"><strong>gridmind<span>AI</span></strong><small>ENERGY MONITORING</small></span>
+          <span className="brand-text"><strong>gridmind<span>AI</span></strong><small>MONITOREO ENERGÉTICO</small></span>
         </div>
         <div className="auth-heading">
           <span className="auth-icon"><LockKeyhole size={19} /></span>
           <span className="eyebrow">CENTRO DE CONTROL</span>
-          <h1 id="auth-title">{registering ? 'Crea tu cuenta' : 'Inicia sesión'}</h1>
-          <p>{registering ? 'Regístrate para acceder al monitoreo de la red.' : 'Accede de forma segura a GridMind AI.'}</p>
+          <h1 id="auth-title">{registering ? 'Crea tu cuenta' : administrator ? 'Acceso de administrador' : 'Inicia sesión'}</h1>
+          <p>{registering ? 'Regístrate para acceder al monitoreo de la red.' : administrator ? 'Ingresa el correo y la contraseña de tu cuenta administradora.' : 'Accede de forma segura a GridMind AI.'}</p>
         </div>
 
         {(connectionError || error) && (
           <div className="auth-error" role="alert"><AlertCircle size={17} /><span>{error || connectionError}</span></div>
         )}
 
-        <form className="auth-form" onSubmit={submit}>
+        <form className="auth-form" name={registering ? 'registro' : 'inicio-sesion'} autoComplete="on" onSubmit={submit}>
           {registering && (
             <label className="auth-field">Nombre
-              <input autoComplete="name" maxLength="100" required value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Tu nombre" />
+              <input id="display-name" name="name" autoComplete="name" maxLength="12" required value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Máximo 12 caracteres" />
             </label>
           )}
           <label className="auth-field">Correo electrónico
-            <input autoComplete="email" type="email" maxLength="254" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nombre@correo.com" />
+            <input id="email" name="username" autoComplete={registering ? 'email' : 'username'} type="email" maxLength="254" required value={email} onChange={(event) => setEmail(event.target.value)} onInvalid={setEmailValidationMessage} onInput={clearValidationMessage} placeholder="nombre@correo.com" />
           </label>
-          <label className="auth-field">Contraseña
+          <div className="auth-field">
+            <label htmlFor="password">Contraseña</label>
             <span className="password-input-wrap">
-              <input autoComplete={registering ? 'new-password' : 'current-password'} type={passwordVisible ? 'text' : 'password'} minLength={registering ? 12 : undefined} maxLength="72" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder={registering ? 'Mínimo 12 caracteres' : 'Tu contraseña'} />
-              <button type="button" className="password-visibility" onClick={() => setPasswordVisible((visible) => !visible)} aria-label={passwordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}>{passwordVisible ? <EyeOff size={17} /> : <Eye size={17} />}</button>
+              <input id="password" name="password" autoComplete={registering ? 'new-password' : 'current-password'} type={passwordVisible ? 'text' : 'password'} minLength={registering ? 12 : undefined} maxLength="72" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder={registering ? 'Mínimo 12 caracteres' : 'Tu contraseña'} />
+              <button className="password-visibility" type="button" onClick={() => setPasswordVisible((visible) => !visible)} aria-label={passwordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={passwordVisible} title={passwordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
+                {passwordVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </span>
-          </label>
+          </div>
           {registering && (
             <>
-              <label className="auth-field">Confirma la contraseña
-                <input autoComplete="new-password" type={passwordVisible ? 'text' : 'password'} maxLength="72" required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Escribe nuevamente tu contraseña" />
-              </label>
-              <p className="auth-role-note">La primera cuenta será administradora. Las cuentas siguientes tendrán rol de operador.</p>
+              <div className="auth-field">
+                <label htmlFor="confirm-password">Confirma la contraseña</label>
+                <span className="password-input-wrap">
+                  <input id="confirm-password" name="confirm-password" autoComplete="new-password" type={confirmPasswordVisible ? 'text' : 'password'} maxLength="72" required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Escribe nuevamente tu contraseña" />
+                  <button className="password-visibility" type="button" onClick={() => setConfirmPasswordVisible((visible) => !visible)} aria-label={confirmPasswordVisible ? 'Ocultar contraseña de confirmación' : 'Mostrar contraseña de confirmación'} aria-pressed={confirmPasswordVisible} title={confirmPasswordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
+                    {confirmPasswordVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </span>
+              </div>
+              <p className="auth-role-note">Las cuentas registradas reciben acceso de operador. El administrador se configura de forma segura en el backend.</p>
             </>
           )}
           <button className="button button-primary button-wide auth-submit" type="submit" disabled={submitting}>
-            {submitting ? 'Procesando…' : registering ? 'Crear cuenta y entrar' : 'Entrar a GridMind'}
+            {submitting ? 'Procesando…' : registering ? 'Crear cuenta y entrar' : administrator ? 'Entrar a Activos' : 'Entrar a GridMind'}
           </button>
+          {mode === 'login' && (
+            <button className="button button-outline button-wide" type="button" onClick={() => switchMode('admin')} disabled={submitting}>
+              Entrar como administrador
+            </button>
+          )}
         </form>
 
         <p className="auth-switch">
-          {registering ? '¿Ya tienes una cuenta?' : '¿Primera vez en GridMind?'}{' '}
-          <button type="button" onClick={switchMode}>{registering ? 'Inicia sesión' : 'Crear cuenta'}</button>
+          {administrator ? (
+            <button type="button" disabled={submitting} onClick={() => switchMode('login')}>Volver al inicio de sesión</button>
+          ) : (
+            <>
+              {registering ? '¿Ya tienes una cuenta?' : '¿Primera vez en GridMind?'}{' '}
+              <button type="button" disabled={submitting} onClick={() => switchMode(registering ? 'login' : 'register')}>
+                {registering ? 'Inicia sesión' : 'Crear cuenta'}
+              </button>
+            </>
+          )}
         </p>
-        <p className="auth-security-note">Las contraseñas se almacenan cifradas y el acceso usa una sesión segura.</p>
+        <p className="auth-security-note">Las contraseñas se protegen con hash BCrypt y el acceso usa una sesión segura.</p>
       </section>
     </main>
   );

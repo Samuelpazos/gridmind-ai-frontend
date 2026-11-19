@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getHealth } from '../services/api';
-import { Activity, Database, Radio, Cpu, ShieldCheck, Server } from 'lucide-react';
+import { Activity, Database, Radio, Cpu, Server } from 'lucide-react';
 
 const SystemStatus = () => {
   const [health, setHealth] = useState(null);

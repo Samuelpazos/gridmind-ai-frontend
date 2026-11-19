@@ -4,7 +4,7 @@ import { setSimulatorConfig } from '../services/api';
 import { Settings, Play, Pause, CheckCircle2 } from 'lucide-react';
 
 const Administration = () => {
-  const { summary, refreshData } = useGrid();
+  const { refreshData } = useGrid();
   const [simActive, setSimActive] = useState(true);
   const [scenario, setScenario] = useState('NORMAL');
   const [msg, setMsg] = useState(null);

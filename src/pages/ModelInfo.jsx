@@ -1,159 +1,106 @@
-import React, { useState, useEffect } from 'react';
-import { getModelInfo, getDemoReferenceScenario } from '../services/api';
+import React, { useState } from 'react';
+import { getDemoReferenceScenario } from '../services/api';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { Cpu, Award, Play, CheckCircle2, Sparkles } from 'lucide-react';
+import { Activity, AlertTriangle, Award, CheckCircle2, Cpu, Loader2, Play, Sparkles } from 'lucide-react';
 
-const ModelInfo = () => {
-  const [info, setInfo] = useState(null);
+const percentage = (value) => (Number.isFinite(value) ? `${(value * 100).toFixed(1)}%` : '—');
+
+const ModelInfo = ({ info }) => {
   const [refScenarioResult, setRefScenarioResult] = useState(null);
   const [testingRef, setTestingRef] = useState(false);
-
-  useEffect(() => {
-    const fetchInfo = async () => {
-      try {
-        const res = await getModelInfo();
-        setInfo(res.data);
-      } catch (err) {
-        console.error('Error fetching model info:', err);
-      }
-    };
-    fetchInfo();
-  }, []);
+  const [referenceError, setReferenceError] = useState('');
 
   const handleTestReferenceScenario = async () => {
     setTestingRef(true);
+    setReferenceError('');
     try {
       const res = await getDemoReferenceScenario();
       setRefScenarioResult(res.data);
     } catch (err) {
-      console.error(err);
+      setReferenceError(err?.response?.data?.message || err?.message || 'No se pudo ejecutar el escenario de referencia.');
     } finally {
       setTestingRef(false);
     }
   };
 
+  const datasetSize = Number.isFinite(info?.trainingSamplesCount) && Number.isFinite(info?.testSamplesCount)
+    ? info.trainingSamplesCount + info.testSamplesCount
+    : null;
   const featureChartData = info?.featureImportances
     ? Object.entries(info.featureImportances).map(([name, val]) => ({
         feature: name,
         importance: Math.round(val * 100)
       }))
     : [];
+  const calculatedProbability = typeof refScenarioResult?.failureProbability === 'number'
+    ? percentage(refScenarioResult.failureProbability)
+    : refScenarioResult?.failureProbabilityPercent || '—';
 
   return (
-    <div className="p-8 space-y-8 font-sans">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
+    <div className="page-stack">
+      <div className="section-heading">
         <div>
-          <h2 className="text-2xl font-extrabold text-white font-mono tracking-tight flex items-center gap-2">
-            <Cpu className="h-6 w-6 text-cyan-400" />
-            Métricas del Modelo de IA Smile (Java Native Engine)
-          </h2>
-          <p className="text-slate-400 text-xs font-mono mt-0.5">
-            Evaluación de Desempeño sobre Dataset Sintético Reproducible (Semilla Fija 42)
-          </p>
+          <span className="eyebrow">SISTEMA DE ANÁLISIS</span>
+          <h2>Información del Modelo</h2>
+          <p>{info?.modelName || 'Métricas y alcance del modelo local de GridMind.'}</p>
         </div>
-
-        <button
-          onClick={handleTestReferenceScenario}
-          disabled={testingRef}
-          className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 via-cyan-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white font-extrabold text-xs px-4 py-3 rounded-xl shadow-lg font-mono transition border border-cyan-400/40 glow-cyan"
-        >
-          <Play className="h-4 w-4 fill-current animate-pulse" />
-          {testingRef ? 'Evaluando...' : 'Probar Escenario de Referencia (Sección 8)'}
+        <button className="button button-primary" onClick={handleTestReferenceScenario} disabled={testingRef || info?.modelTrained === false}>
+          {testingRef ? <Loader2 className="spin" size={16} /> : <Play size={16} />}
+          {testingRef ? 'Evaluando…' : 'Probar Escenario de Referencia'}
         </button>
       </div>
 
-      {/* Model Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 font-mono">
-        <div className="glass-panel glass-panel-hover rounded-2xl p-6 space-y-2">
-          <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Precision</span>
-          <div className="text-4xl font-extrabold text-cyan-400">
-            {info ? `${(info.precision * 100).toFixed(1)}%` : '--'}
-          </div>
-          <p className="text-xs text-slate-400">Exactitud predicciones positivas</p>
-        </div>
-
-        <div className="glass-panel glass-panel-hover rounded-2xl p-6 space-y-2 border-emerald-500/50 glow-emerald">
-          <span className="text-emerald-300 text-xs font-extrabold flex items-center gap-1 uppercase tracking-wider">
-            <Award className="h-4 w-4" /> Recall (&gt;85% Requisito)
-          </span>
-          <div className="text-4xl font-extrabold text-emerald-400">
-            {info ? `${(info.recall * 100).toFixed(1)}%` : '--'}
-          </div>
-          <p className="text-xs text-emerald-300 font-bold">Cumple meta de detección &gt;85%</p>
-        </div>
-
-        <div className="glass-panel glass-panel-hover rounded-2xl p-6 space-y-2">
-          <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">F1-Score</span>
-          <div className="text-4xl font-extrabold text-cyan-400">
-            {info ? `${(info.f1Score * 100).toFixed(1)}%` : '--'}
-          </div>
-          <p className="text-xs text-slate-400">Balance Precision-Recall</p>
-        </div>
-
-        <div className="glass-panel glass-panel-hover rounded-2xl p-6 space-y-2">
-          <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">ROC-AUC</span>
-          <div className="text-4xl font-extrabold text-cyan-400">
-            {info ? info.rocAuc.toFixed(3) : '--'}
-          </div>
-          <p className="text-xs text-slate-400">Discriminación de clases</p>
-        </div>
+      <div className="notice-banner model-disclaimer">
+        <AlertTriangle size={18} />
+        <span>
+          <strong>Modelo entrenado con datos sintéticos generados por el sistema.</strong>{' '}
+          No predice fallas de equipos reales; valida el flujo de análisis.
+          <br />
+          {datasetSize === null
+            ? 'El tamaño del dataset sintético no está disponible.'
+            : `Dataset sintético: ${datasetSize.toLocaleString('es-CO')} muestras. Las métricas se calcularon sobre el 20 % de prueba (${info.testSamplesCount.toLocaleString('es-CO')} muestras) de ese mismo dataset.`}
+        </span>
       </div>
+      {info?.trainingError && <div className="notice-banner error-banner"><AlertTriangle size={18} /><span>No se pudo entrenar el modelo: {info.trainingError}</span></div>}
+      <section className="stats-grid" aria-label="Métricas del modelo">
+        <article className="stat-card"><div className="stat-icon blue"><Cpu size={19} /></div><div className="stat-copy"><span>Precisión</span><strong>{percentage(info?.precision)}</strong><small>Predicciones positivas correctas</small></div></article>
+        <article className="stat-card"><div className="stat-icon green"><Award size={19} /></div><div className="stat-copy"><span>Recall</span><strong>{percentage(info?.recall)}</strong><small>Detección de fallas del conjunto de prueba</small></div></article>
+        <article className="stat-card"><div className="stat-icon violet"><Activity size={19} /></div><div className="stat-copy"><span>F1-Score</span><strong>{percentage(info?.f1Score)}</strong><small>Balance entre precisión y recall</small></div></article>
+        <article className="stat-card"><div className="stat-icon orange"><Sparkles size={19} /></div><div className="stat-copy"><span>ROC-AUC</span><strong>{Number.isFinite(info?.rocAuc) ? info.rocAuc.toFixed(3) : '—'}</strong><small>Discriminación de clases</small></div></article>
+      </section>
 
-      {/* Reference Scenario Result Card */}
       {refScenarioResult && (
-        <div className="glass-panel rounded-2xl p-6 space-y-5 font-mono border-emerald-500/60 glow-emerald">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 className="text-base font-extrabold text-emerald-300 flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-              {refScenarioResult.scenarioName} - VERIFICADO SATISFACTORIAMENTE
-            </h3>
-            <span className="text-xs bg-emerald-950 text-emerald-300 border border-emerald-500 px-3 py-1 rounded-full font-bold">
-              Cumple Requisito Sección 8
-            </span>
+        <section className="surface-card">
+          <div className="card-heading"><div><span className="eyebrow">ESCENARIO DE REFERENCIA</span><h3>Resultado calculado por el modelo</h3></div><CheckCircle2 size={19} className="green-icon" /></div>
+          <p className="quiet-note">Entrada fija de prueba; no proviene de sensores.</p>
+          <div className="model-result-grid">
+            <div><span>Riesgo</span><strong>{refScenarioResult.riskLevel || '—'}</strong></div>
+            <div><span>Probabilidad de falla</span><strong>{calculatedProbability}</strong></div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
-            <div className="space-y-2 bg-slate-950/90 p-4 rounded-xl border border-slate-800">
-              <p className="text-slate-400 font-bold uppercase">Entradas Evaluadas:</p>
-              <ul className="space-y-1.5 text-slate-200">
-                <li>• Temperatura: <strong className="text-cyan-300">{refScenarioResult.inputs.temperatura}</strong></li>
-                <li>• Voltaje: <strong className="text-cyan-300">{refScenarioResult.inputs.voltaje}</strong></li>
-                <li>• Corriente: <strong className="text-cyan-300">{refScenarioResult.inputs.corriente}</strong></li>
-                <li>• Vibración: <strong className="text-cyan-300">{refScenarioResult.inputs.vibracion}</strong></li>
-                <li>• Edad Transformador: <strong className="text-cyan-300">{refScenarioResult.inputs.edad}</strong></li>
-              </ul>
-            </div>
-
-            <div className="space-y-2 bg-slate-950/90 p-4 rounded-xl border border-slate-800">
-              <p className="text-slate-400 font-bold uppercase">Resultado Esperado Obtenido:</p>
-              <p>Nivel de Riesgo: <strong className="text-rose-400 font-extrabold text-sm">{refScenarioResult.riskLevel}</strong> (Esperado: HIGH)</p>
-              <p>Probabilidad de Falla: <strong className="text-cyan-400 font-extrabold text-sm">{refScenarioResult.failureProbabilityPercent}</strong> (Esperado: 70% - 85%)</p>
-              <p className="text-emerald-300 pt-2 font-bold">Recomendación Generada:</p>
-              <p className="text-slate-100 bg-slate-900 p-2.5 rounded-lg border border-slate-800 font-bold">"{refScenarioResult.recommendation}"</p>
-            </div>
+          <div className="model-inputs">
+            {Object.entries(refScenarioResult.inputs || {}).map(([name, value]) => <span key={name}>{name}: <strong>{value}</strong></span>)}
           </div>
-        </div>
+          {refScenarioResult.recommendation && <div className="recommendation-box"><Sparkles size={16} /><p><strong>Recomendación de referencia</strong><br />{refScenarioResult.recommendation}</p></div>}
+        </section>
       )}
+      {referenceError && <div className="notice-banner error-banner"><AlertTriangle size={18} /><span>{referenceError}</span></div>}
 
-      {/* Feature Importance Chart */}
-      <div className="glass-panel rounded-2xl p-6 space-y-6">
-        <h3 className="text-base font-bold text-white font-mono flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-cyan-400" />
-          Importancia de Variables en el Modelo (Feature Importances)
-        </h3>
-
-        <div className="h-64 w-full">
+      <section className="surface-card">
+        <div className="card-heading"><div><span className="eyebrow">MODELO DE IA</span><h3>Importancia de variables</h3></div><Sparkles size={19} className="green-icon" /></div>
+        {featureChartData.length ? (
+          <div className="model-chart">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={featureChartData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis type="number" stroke="#64748b" fontSize={11} unit="%" />
-              <YAxis type="category" dataKey="feature" stroke="#94a3b8" fontSize={12} width={150} tickLine={false} />
-              <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#06b6d4', borderRadius: '12px' }} />
-              <Bar dataKey="importance" fill="#06b6d4" radius={[0, 6, 6, 0]} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e8edf3" />
+              <XAxis type="number" stroke="#8190a3" fontSize={11} unit="%" />
+              <YAxis type="category" dataKey="feature" stroke="#8190a3" fontSize={11} width={150} tickLine={false} />
+              <Tooltip contentStyle={{ backgroundColor: '#fff', borderColor: '#e8edf3', borderRadius: '8px' }} />
+              <Bar dataKey="importance" fill="#3868e8" radius={[0, 6, 6, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
-      </div>
+          </div>
+        ) : <p className="quiet-note">Las importancias de variables no están disponibles.</p>}
+      </section>
     </div>
   );
 };

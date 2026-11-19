@@ -3,7 +3,8 @@ import { useGrid } from '../context/GridContext';
 import { getComponentRisk, getComponentReadings, executeCommand } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { Zap, BrainCircuit, Activity, AlertTriangle, CheckCircle, Wrench, Flame, Gauge, Thermometer, ShieldAlert } from 'lucide-react';
+import { Zap, BrainCircuit, Activity, CheckCircle, Wrench, Flame, ShieldAlert } from 'lucide-react';
+import { readingSourceLabel } from '../utils/telemetry';
 
 const TransformerDetail = () => {
   const { selectedTransformerId } = useGrid();
@@ -125,6 +126,7 @@ const TransformerDetail = () => {
             <span className="text-slate-400 text-xs uppercase font-bold tracking-wider">{s.type}</span>
             <div className="text-3xl font-extrabold text-cyan-300">
               {s.latestReading ? `${s.latestReading.value} ${s.latestReading.unit}` : '--'}
+              {readingSourceLabel(s.latestReading?.source) && <small className="reading-source">{readingSourceLabel(s.latestReading.source)}</small>}
             </div>
             <div className="w-full bg-slate-800/80 h-2 rounded-full overflow-hidden p-0.5 border border-slate-700">
               <div

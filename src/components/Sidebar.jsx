@@ -14,7 +14,6 @@ import {
   Cpu,
   Activity,
   Sparkles,
-  ShieldAlert
 } from 'lucide-react';
 
 const navItems = [
