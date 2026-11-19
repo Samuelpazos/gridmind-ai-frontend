@@ -36,3 +36,10 @@ Importa el repositorio del frontend en Vercel. El directorio raíz del proyecto 
 Configura `VITE_API_BASE_URL` en las variables de entorno de Vercel con la URL HTTPS pública del backend terminada en `/api` (por ejemplo, `https://api.example.com/api`) y vuelve a desplegar. No pongas claves de Claude ni otros secretos en variables `VITE_*`: estas variables se incorporan al JavaScript público. Vercel aloja aquí el frontend estático; Spring Boot y PostgreSQL necesitan servicios de alojamiento externos.
 
 La autenticación usa cookies de sesión y CSRF. Antes de producción, configura el backend para el dominio real, HTTPS y CORS. Si frontend y backend están en sitios distintos, la cookie `SameSite=Lax` actual puede impedir que la sesión funcione; conviene mantenerlos bajo el mismo sitio o elegir y probar una estrategia de proxy/autenticación adecuada antes de publicar.
+
+## Guías
+
+- [explicar el ingreso de administrador en la interfaz](docs/acceso.md)
+- [documentar el alta y archivo de transformadores](docs/activos.md)
+- [guiar la lectura del resultado del simulador](docs/simulador.md)
+- [preparar un recorrido de demostración de la interfaz](docs/demo.md)
