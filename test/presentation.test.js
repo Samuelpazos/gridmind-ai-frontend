@@ -55,3 +55,7 @@ test('missing recent origin', () => {
 test('zero failure probability', () => {
   assert.equal(probabilityLabel(0), '0%');
 });
+
+test('maximum failure probability', () => {
+  assert.equal(probabilityLabel(1), '100%');
+});
