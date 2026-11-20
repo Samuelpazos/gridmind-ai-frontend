@@ -31,3 +31,7 @@ test('legacy expanded simulation source', () => {
 test('unknown reading source', () => {
   assert.equal(readingSourceLabel(null), null);
 });
+
+test('recent hardware origin', () => {
+  assert.equal(recentDataSourceLabel('HARDWARE'), 'Datos: Hardware');
+});
