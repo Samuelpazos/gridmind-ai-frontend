@@ -45,3 +45,7 @@ With both pending and acknowledged alerts, select the pending filter. Check that
 ## FE-11 · Simulated alert grouping
 
 Generate an alert using a disposable simulated transformer. Check that it appears in the simulated group.
+
+## FE-12 · Empty alerts group
+
+Open a group with no pending alerts while the pending filter is selected. Check that the group displays its empty state.
