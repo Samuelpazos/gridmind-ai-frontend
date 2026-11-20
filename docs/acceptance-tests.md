@@ -25,3 +25,7 @@ Create one real and one simulated asset. Switch between both tabs and check that
 ## FE-06 · Archived inventory tab
 
 Archive a disposable asset and check that it leaves its active tab and appears under **Archivados**.
+
+## FE-07 · Search by transformer code
+
+Copy the code of a visible asset and enter it in the inventory search. Check that the matching asset remains visible.
