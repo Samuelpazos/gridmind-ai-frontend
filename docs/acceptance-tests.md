@@ -41,3 +41,7 @@ Open **Operaciones → Entrada de telemetría** after a hardware batch. Compare 
 ## FE-10 · Filter pending alerts
 
 With both pending and acknowledged alerts, select the pending filter. Check that acknowledged alerts disappear from the list.
+
+## FE-11 · Simulated alert grouping
+
+Generate an alert using a disposable simulated transformer. Check that it appears in the simulated group.
