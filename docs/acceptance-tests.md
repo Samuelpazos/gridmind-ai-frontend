@@ -73,3 +73,7 @@ Use an asset with all four ESP32 channels. Request a prediction in a test enviro
 ## FE-18 · Claude provider unavailable
 
 Use an isolated backend without a Claude key and request a prediction for an asset with four readings. Check that the error is visible and the dialog can be closed.
+
+## FE-19 · Refresh after removing a filter
+
+In an inventory with multiple asset states, set a state filter and then reset it to **Todos**. Check that assets from the original tab are visible again.
