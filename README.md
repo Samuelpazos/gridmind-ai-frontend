@@ -1,45 +1,29 @@
-# GridMind AI - Frontend Application
+# GridMind AI · Frontend
 
-Aplicación Frontend en React 18, Vite, JavaScript y Recharts con estética empresarial SCADA de centro de control de energía.
+React, Vite, JavaScript, Recharts, and Lucide power the Spanish-language monitoring interface. Operators can review network status, manage real and simulated transformers, inspect readings, run what-if scenarios, ask about alerts, and use maintenance and analysis controls.
 
-## Características
-- **12 Pantallas completas de monitoreo y administración**:
-  1. Dashboard Principal (KPIs, desglose de estados, vista rápida de red)
-  2. Monitoreo de Red (Árbol jerárquico Composite: Subestación -> Transformador -> Sensores)
-  3. Detalle de Transformador (Indicadores de probabilidad, gráficas temporales Recharts, explicabilidad de IA)
-  4. Alertas (Tabla de alertas con filtrado y modal de reconocimiento)
-  5. Ranking de Riesgo (Tabla de prioridad Riesgo x Impacto)
-  6. Historial (Línea de tiempo de auditoría de eventos)
-  7. Simulador de Fallas (Laboratorio de simulación comparativa de escenarios hipotéticos)
-  8. Mantenimiento (Recomendaciones, programación y restablecimiento a estado NORMAL)
-  9. Administración (Gestión del simulador y escenarios de telemetría)
-  10. Configuración de IA (Selección de estrategia: Threshold, IsolationForest, SupervisedModel, WeightedAge y Fallback RNF-08)
-  11. Información del Modelo (Métricas Precision, Recall >85%, F1, ROC-AUC, Importancia de Variables y Prueba del Escenario de Referencia Sección 8)
-  12. Estado del Sistema (Salud del backend, PostgreSQL, WebSocket y diagnósticos)
+## Local development
 
-- **Telemetría en tiempo real**: Latencia &lt; 3s.
-- **Diseño Responsive & Modo Oscuro SCADA**.
-
-## Ejecución Local
 ```bash
 npm install
 npm run dev
 ```
-Acceder en el navegador a `http://localhost:5173`
 
-Para desarrollo local, Vite reenvía `/api`, `/health` y `/ws` al backend local. Si el frontend se despliega aparte, crea un archivo `.env` para el build con `VITE_API_BASE_URL` apuntando a la URL del backend y terminando en `/api`; ver `.env.example`. El backend debe permitir el origen del frontend mediante `CORS_ALLOWED_ORIGIN_PATTERNS`.
+Open `http://localhost:5173`. Vite proxies `/api`, `/health`, and `/ws` to the local backend. Run `npm run lint` and `npm run build` to verify the application.
 
-## Despliegue del frontend en Vercel
+## Deploy on Vercel
 
-Importa el repositorio del frontend en Vercel. El directorio raíz del proyecto debe ser `frontend` si importas el repositorio completo; si conectas el repositorio independiente del frontend, usa su raíz. Vercel detecta Vite y utiliza `npm run build` con `dist` como directorio de salida. `vercel.json` habilita el fallback de la SPA para las rutas internas.
+Import the frontend repository using its root, or set the root directory to `frontend` when importing the full project. Use `npm run build` with `dist` as output. The SPA fallback is configured in `vercel.json`.
 
-Configura `VITE_API_BASE_URL` en las variables de entorno de Vercel con la URL HTTPS pública del backend terminada en `/api` (por ejemplo, `https://api.example.com/api`) y vuelve a desplegar. No pongas claves de Claude ni otros secretos en variables `VITE_*`: estas variables se incorporan al JavaScript público. Vercel aloja aquí el frontend estático; Spring Boot y PostgreSQL necesitan servicios de alojamiento externos.
+Set `VITE_API_BASE_URL` to the public backend HTTPS URL ending in `/api` and redeploy. Keep secrets out of `VITE_*` variables because they are bundled into public JavaScript. Spring Boot and PostgreSQL need separate hosting.
 
-La autenticación usa cookies de sesión y CSRF. Antes de producción, configura el backend para el dominio real, HTTPS y CORS. Si frontend y backend están en sitios distintos, la cookie `SameSite=Lax` actual puede impedir que la sesión funcione; conviene mantenerlos bajo el mismo sitio o elegir y probar una estrategia de proxy/autenticación adecuada antes de publicar.
+The API uses session cookies and CSRF. Configure the production frontend origin in `CORS_ALLOWED_ORIGIN_PATTERNS`. Cross-site deployments may be blocked by the `SameSite=Lax` session cookie. Use a same-site deployment or verify an appropriate proxy and authentication configuration.
 
-## Guías
+## Operator guides
 
-- [explicar el ingreso de administrador en la interfaz](docs/acceso.md)
-- [documentar el alta y archivo de transformadores](docs/activos.md)
-- [guiar la lectura del resultado del simulador](docs/simulador.md)
-- [preparar un recorrido de demostración de la interfaz](docs/demo.md)
+The guides are in Spanish to match the interface.
+
+- [Sign in](docs/acceso.md)
+- [Manage transformers](docs/activos.md)
+- [Run a simulation](docs/simulador.md)
+- [Walk through the demo](docs/demo.md)
