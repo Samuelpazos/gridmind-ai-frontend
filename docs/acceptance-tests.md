@@ -61,3 +61,7 @@ Enter a value the current form marks invalid. Check that the interface prevents 
 ## FE-15 · Original and simulated readings
 
 Choose an asset with an existing reading and run a scenario with a different target. Check that the original reading and the requested simulated value appear separately.
+
+## FE-16 · Incomplete Claude prediction
+
+Request a Claude prediction for an asset with only a temperature reading. Check that the dialog explains that required readings are missing.
