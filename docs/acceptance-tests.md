@@ -33,3 +33,7 @@ Copy the code of a visible asset and enter it in the inventory search. Check tha
 ## FE-08 · Empty search result
 
 Search for a string absent from the inventory and check that no asset rows appear. Clear the search and check that the rows return.
+
+## FE-09 · Last hardware reading in Operations
+
+Open **Operaciones → Entrada de telemetría** after a hardware batch. Compare the last hardware timestamp with the temperature reading in the inventory.
