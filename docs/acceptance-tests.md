@@ -37,3 +37,7 @@ Search for a string absent from the inventory and check that no asset rows appea
 ## FE-09 · Last hardware reading in Operations
 
 Open **Operaciones → Entrada de telemetría** after a hardware batch. Compare the last hardware timestamp with the temperature reading in the inventory.
+
+## FE-10 · Filter pending alerts
+
+With both pending and acknowledged alerts, select the pending filter. Check that acknowledged alerts disappear from the list.
