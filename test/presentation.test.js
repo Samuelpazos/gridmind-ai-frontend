@@ -35,3 +35,7 @@ test('unknown reading source', () => {
 test('recent hardware origin', () => {
   assert.equal(recentDataSourceLabel('HARDWARE'), 'Datos: Hardware');
 });
+
+test('recent simulation origin', () => {
+  assert.equal(recentDataSourceLabel('SIMULATION'), 'Datos: Simulados');
+});
