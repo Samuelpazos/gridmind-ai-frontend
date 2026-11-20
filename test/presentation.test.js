@@ -27,3 +27,7 @@ test('legacy compact simulation source', () => {
 test('legacy expanded simulation source', () => {
   assert.equal(readingSourceLabel('SIMULATED', true), 'Simulación');
 });
+
+test('unknown reading source', () => {
+  assert.equal(readingSourceLabel(null), null);
+});
