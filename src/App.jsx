@@ -766,6 +766,20 @@ const alertQuestions = [
   ['next', '¿Qué reviso primero?'],
 ];
 
+const alertSourceLabels = {
+  SENSOR_OBSERVER: 'Lectura de sensor',
+  MANUAL_FAILURE_SIMULATION: 'Falla de prueba',
+  AI_ANALYSIS: 'Análisis automático',
+  THRESHOLD_STRATEGY: 'Análisis por umbrales',
+  SUPERVISED_MODEL_STRATEGY: 'Modelo supervisado',
+  ISOLATION_FOREST_STRATEGY: 'Detección de anomalías',
+  WEIGHTED_AGE_STRATEGY: 'Evaluación por antigüedad',
+};
+
+
+const alertReadingText = (reading) =>
+  `${reading.sensor} · ${simulationMeasurement(reading.value, reading.unit)} · ${dateLabel(reading.timestamp)} · ${readingSourceLabel(reading.source, true) || 'Origen sin identificar'}`;
+
 function AlertAssistant({ alertId }) {
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState('');
@@ -788,7 +802,9 @@ function AlertAssistant({ alertId }) {
     }
   };
 
-  const readings = messages.at(-1)?.readings;
+  const evidence = messages.at(-1);
+  const readings = evidence?.readings;
+  const triggeringReading = evidence?.triggeringReading;
   return (
     <div className="ai-explanation-actions">
       <button type="button" className="button button-outline compact" aria-expanded={open} onClick={() => setOpen(!open)}>
@@ -808,10 +824,15 @@ function AlertAssistant({ alertId }) {
         {error && <p className="ai-error" role="alert">{error}</p>}
         {readings && <details className="alert-assistant-evidence">
           <summary>Fuentes de la respuesta</summary>
-          <p>Registro de esta alerta y lecturas guardadas durante los cinco minutos previos.</p>
-          {readings.length ? <ul>{readings.map((reading, index) =>
-            <li key={index}>{reading.sensor} · {reading.value.toLocaleString('es-CO')} {reading.unit} · {dateLabel(reading.timestamp)} · {reading.source === 'HARDWARE' ? 'Hardware' : 'Simulación'}</li>
-          )}</ul> : <p>Sin lecturas guardadas en ese intervalo.</p>}
+          {triggeringReading
+            ? <p><strong>Lectura que disparó la alerta</strong><br />{alertReadingText(triggeringReading)}</p>
+            : <p>El registro de esta alerta no tiene una lectura detonante disponible.</p>}
+          {readings.length ? <>
+            <p>Otras lecturas guardadas durante los cinco minutos previos</p>
+            <ul>{readings.map((reading, index) =>
+              <li key={index}>{alertReadingText(reading)}</li>
+            )}</ul>
+          </> : <p>Sin otras lecturas guardadas en ese intervalo.</p>}
         </details>}
         <form className="alert-assistant-questions" onSubmit={(event) => { event.preventDefault(); ask(question); }}>
           <input className="form-input" aria-label="Pregunta sobre esta alerta" placeholder="Escribe una pregunta sobre esta alerta" value={question} maxLength={500} onChange={(event) => setQuestion(event.target.value)} />
