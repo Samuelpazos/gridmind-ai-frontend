@@ -29,3 +29,7 @@ Archive a disposable asset and check that it leaves its active tab and appears u
 ## FE-07 · Search by transformer code
 
 Copy the code of a visible asset and enter it in the inventory search. Check that the matching asset remains visible.
+
+## FE-08 · Empty search result
+
+Search for a string absent from the inventory and check that no asset rows appear. Clear the search and check that the rows return.
