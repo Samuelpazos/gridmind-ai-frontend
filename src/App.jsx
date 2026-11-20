@@ -32,6 +32,7 @@ import {
   Zap,
 } from 'lucide-react';
 import AuthPage from './pages/AuthPage';
+import { dateLabel } from './utils/dates';
 import { probabilityLabel } from './utils/probability';
 import { readingSourceLabel, recentDataSourceLabel } from './utils/telemetry';
 import {
@@ -94,7 +95,6 @@ const statusClasses = {
 };
 
 const displayStatus = (status) => statusLabels[status] || status || 'Sin dato';
-const dateLabel = (value) => (value ? new Date(value).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }) : 'Sin fecha');
 const errorText = (error) => error?.response?.data?.message || error?.message || 'Ocurrió un error inesperado.';
 
 function StatusPill({ value }) {
