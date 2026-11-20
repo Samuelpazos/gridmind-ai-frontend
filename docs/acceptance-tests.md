@@ -49,3 +49,7 @@ Generate an alert using a disposable simulated transformer. Check that it appear
 ## FE-12 · Empty alerts group
 
 Open a group with no pending alerts while the pending filter is selected. Check that the group displays its empty state.
+
+## FE-13 · Simulator unit changes
+
+Select temperature, voltage, current and vibration in turn. Check that the corresponding target fields display °C, kV, A and mm/s.
