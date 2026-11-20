@@ -1019,6 +1019,19 @@ function SimulatorPage({ assets, history, onRefresh, selectedAssetId, onError })
                   <span className="simulation-probability">Probabilidad estimada de falla <b>{probabilityLabel(result.simulatedProbability)}</b></span>
                 </div>
               </div>
+              {(result.warningAlertThreshold != null || result.criticalAlertThreshold != null) && (
+                <div className="notice-banner">
+                  <AlertTriangle size={17} />
+                  <span><strong>Umbrales de alerta de GridMind</strong><br />
+                    {result.warningAlertThreshold != null && `Atención si supera ${simulationMeasurement(result.warningAlertThreshold, simulationVariables[result.variableModified]?.unit)}. `}
+                    {result.criticalAlertThreshold != null && `Crítica si supera ${simulationMeasurement(result.criticalAlertThreshold, simulationVariables[result.variableModified]?.unit)}. `}
+                    Estos umbrales se aplican al recibir lecturas de sensores.
+                  </span>
+                </div>
+              )}
+              {result.referenceInputs?.length > 0 && <p className="quiet-note">
+                El escenario usó valores de referencia para {result.referenceInputs.map((type) => simulationVariables[type]?.label || 'una variable').join(', ')} porque faltaban lecturas.
+              </p>}
               <p className="quiet-note">Resultado hipotético. El porcentaje depende del método de análisis y de los valores usados para el escenario. Para un equipo real, contrasta el resultado con las lecturas y los límites del equipo.</p>
               <div className="recommendation-box"><Sparkles size={17} /><p><strong>Recomendación del modelo</strong><br />{result.recommendation || 'Revisa las condiciones del activo y repite el análisis con datos actualizados.'}</p></div>
             </>
