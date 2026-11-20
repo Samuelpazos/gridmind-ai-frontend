@@ -95,3 +95,7 @@ test('negative temperature reading', () => {
 test('zero current reading', () => {
   assert.equal(simulationMeasurement(0, 'A'), '0 A');
 });
+
+test('missing vibration reading', () => {
+  assert.equal(simulationMeasurement(null, 'mm/s'), 'Sin lectura');
+});
