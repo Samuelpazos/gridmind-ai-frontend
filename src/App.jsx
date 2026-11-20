@@ -905,14 +905,14 @@ function SimulatorPage({ assets, history, onRefresh, selectedAssetId, onError })
                   <span>Lectura original</span>
                   <strong>{simulationMeasurement(result.originalValue, simulationVariables[result.variableModified]?.unit)}</strong>
                   <StatusPill value={result.originalState} />
-                  <span className="simulation-probability">Probabilidad de falla <b>{probabilityLabel(result.originalProbability)}</b></span>
+                  <span className="simulation-probability">Estimación registrada <b>{probabilityLabel(result.originalProbability)}</b></span>
                 </div>
                 <ArrowUpRight className="comparison-arrow" size={19} />
                 <div>
                   <span>Valor simulado</span>
                   <strong>{simulationMeasurement(result.simulatedValue, simulationVariables[result.variableModified]?.unit)}</strong>
                   <StatusPill value={result.simulatedState} />
-                  <span className="simulation-probability">Probabilidad de falla <b>{probabilityLabel(result.simulatedProbability)}</b></span>
+                  <span className="simulation-probability">Probabilidad estimada de falla <b>{probabilityLabel(result.simulatedProbability)}</b></span>
                 </div>
               </div>
               <div className="recommendation-box"><Sparkles size={17} /><p><strong>Recomendación del modelo</strong><br />{result.recommendation || 'Revisa las condiciones del activo y repite el análisis con datos actualizados.'}</p></div>
@@ -994,6 +994,7 @@ function OperationsPage({ maintenances, assets, alerts, health, modelInfo, telem
           </select>
         </label>}
         {canConfigure && <button className="button button-primary" disabled={!telemetryStatus || pendingId === 'simulator'} onClick={() => onSimulatorChange(simulatorActive, scenario)}>{pendingId === 'simulator' ? 'Actualizando…' : 'Aplicar escenario'}</button>}
+              <p className="quiet-note">Resultado hipotético. El porcentaje depende del método de análisis y de los valores usados para el escenario. Para un equipo real, contrasta el resultado con las lecturas y los límites del equipo.</p>
         {canConfigure && <button className="button button-outline" disabled={!telemetryStatus || pendingId === 'simulator'} onClick={() => onSimulatorChange(!simulatorActive, scenario)}>{pendingId === 'simulator' ? 'Actualizando…' : simulatorActive ? 'Pausar simulador' : 'Reanudar simulador'}</button>}
         {!telemetryStatus?.hardwareIngestionEnabled && <p className="quiet-note">El receptor ESP32 se habilita al configurar TELEMETRY_DEVICE_TOKEN en el backend y reiniciarlo.</p>}
         {!simulatorActive && <p className="quiet-note">El simulador está pausado. Las lecturas de la maqueta podrán entrar sin mezclarse con valores simulados.</p>}
