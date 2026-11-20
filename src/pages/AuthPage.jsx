@@ -30,10 +30,10 @@ const getAuthenticationErrorMessage = (requestError) => (
 export default function AuthPage({ onAuthenticated, connectionError }) {
   const [mode, setMode] = useState('login');
   const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState(demoLoginEnabled ? demoEmail : '');
-  const [password, setPassword] = useState(demoLoginEnabled ? demoPassword : '');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordVisible, setPasswordVisible] = useState(demoLoginEnabled);
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -64,12 +64,9 @@ export default function AuthPage({ onAuthenticated, connectionError }) {
 
   const switchMode = (nextMode) => {
     setMode(nextMode);
-    const useDemo = nextMode === 'login' && demoLoginEnabled && !email;
-    if (useDemo) setEmail(demoEmail);
-    if (nextMode === 'register' && demoLoginEnabled && email === demoEmail) setEmail('');
-    setPassword(useDemo ? demoPassword : '');
+    setPassword('');
     setConfirmPassword('');
-    setPasswordVisible(useDemo);
+    setPasswordVisible(false);
     setConfirmPasswordVisible(false);
     setError('');
   };
@@ -87,6 +84,16 @@ export default function AuthPage({ onAuthenticated, connectionError }) {
           <h1 id="auth-title">{registering ? 'Crea tu cuenta' : 'Inicia sesión'}</h1>
           <p>{registering ? 'Crea tu espacio privado para monitorear y simular transformadores.' : 'Accede a tu inventario de GridMind AI.'}</p>
         </div>
+
+        {!registering && demoLoginEnabled && (
+          <section className="auth-demo" aria-label="Cuenta de demostración">
+            <strong>Cuenta de demostración</strong>
+            <dl>
+              <dt>Correo</dt><dd>{demoEmail}</dd>
+              <dt>Contraseña</dt><dd>{demoPassword}</dd>
+            </dl>
+          </section>
+        )}
 
         {(connectionError || error) && (
           <div className="auth-error" role="alert"><AlertCircle size={17} /><span>{error || connectionError}</span></div>
