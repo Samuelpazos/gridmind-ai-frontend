@@ -32,6 +32,7 @@ import {
   Zap,
 } from 'lucide-react';
 import AuthPage from './pages/AuthPage';
+import { simulationMeasurement, simulationNumber } from './utils/measurements';
 import { errorText } from './utils/requestError';
 import { dateLabel } from './utils/dates';
 import { probabilityLabel } from './utils/probability';
@@ -896,9 +897,6 @@ const simulationVariables = {
   VOLTAGE: { label: 'Voltaje', unit: 'kV', minimum: 0, sliderMin: 0, sliderMax: 30, initial: 15 },
 };
 
-const simulationNumber = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 });
-const simulationMeasurement = (value, unit) =>
-  Number.isFinite(value) ? `${simulationNumber.format(value)} ${unit}` : 'Sin lectura';
 
 function simulationChange(entry) {
   if (!Number.isFinite(entry.simulatedValue)) {
