@@ -21,3 +21,7 @@ Open **Ver lecturas**, select its close button and check that the selected asset
 ## FE-05 · Real and simulated inventory tabs
 
 Create one real and one simulated asset. Switch between both tabs and check that each asset appears under its corresponding type.
+
+## FE-06 · Archived inventory tab
+
+Archive a disposable asset and check that it leaves its active tab and appears under **Archivados**.
