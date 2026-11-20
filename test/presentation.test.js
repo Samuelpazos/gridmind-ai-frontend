@@ -39,3 +39,7 @@ test('recent hardware origin', () => {
 test('recent simulation origin', () => {
   assert.equal(recentDataSourceLabel('SIMULATION'), 'Datos: Simulados');
 });
+
+test('recent legacy simulation origin', () => {
+  assert.equal(recentDataSourceLabel('SIMULATED'), 'Datos: Simulados');
+});
