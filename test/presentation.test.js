@@ -15,3 +15,7 @@ test('expanded hardware source', () => {
 test('compact simulation source', () => {
   assert.equal(readingSourceLabel('SIMULATION'), 'SIM');
 });
+
+test('expanded simulation source', () => {
+  assert.equal(readingSourceLabel('SIMULATION', true), 'Simulación');
+});
