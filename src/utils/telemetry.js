@@ -1,4 +1,5 @@
 export const readingSourceLabel = (source, expanded = false) => {
+  if (source === 'HARDWARE_DEMO') return 'Dato de demostración';
   if (source === 'HARDWARE') return expanded ? 'Hardware' : 'HW';
   if (source === 'SIMULATION' || source === 'SIMULATED') return expanded ? 'Simulación' : 'SIM';
   return null;
