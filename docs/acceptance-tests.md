@@ -13,3 +13,7 @@ Open the readings of a real transformer with a linked sensor and no batches yet.
 ## FE-03 · Refresh an open readings panel
 
 Keep **Ver lecturas** open while a second hardware batch arrives. Check that the displayed value updates. Use readings in different minutes if comparing visible timestamps.
+
+## FE-04 · Close the readings panel
+
+Open **Ver lecturas**, select its close button and check that the selected asset remains visible in the inventory.
