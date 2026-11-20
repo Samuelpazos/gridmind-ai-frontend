@@ -2,6 +2,10 @@ import { useState } from 'react';
 import { AlertCircle, Eye, EyeOff, LockKeyhole, Zap } from 'lucide-react';
 import { getCsrfToken, login, registerAccount } from '../services/api';
 
+const demoEmail = import.meta.env.VITE_DEMO_LOGIN_EMAIL ?? '';
+const demoPassword = import.meta.env.VITE_DEMO_LOGIN_PASSWORD ?? '';
+const demoLoginEnabled = Boolean(demoEmail && demoPassword);
+
 const setEmailValidationMessage = (event) => {
   const input = event.currentTarget;
   input.setCustomValidity(
@@ -26,10 +30,10 @@ const getAuthenticationErrorMessage = (requestError) => (
 export default function AuthPage({ onAuthenticated, connectionError }) {
   const [mode, setMode] = useState('login');
   const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(demoLoginEnabled ? demoEmail : '');
+  const [password, setPassword] = useState(demoLoginEnabled ? demoPassword : '');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(demoLoginEnabled);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -60,9 +64,12 @@ export default function AuthPage({ onAuthenticated, connectionError }) {
 
   const switchMode = (nextMode) => {
     setMode(nextMode);
-    setPassword('');
+    const useDemo = nextMode === 'login' && demoLoginEnabled && !email;
+    if (useDemo) setEmail(demoEmail);
+    if (nextMode === 'register' && demoLoginEnabled && email === demoEmail) setEmail('');
+    setPassword(useDemo ? demoPassword : '');
     setConfirmPassword('');
-    setPasswordVisible(false);
+    setPasswordVisible(useDemo);
     setConfirmPasswordVisible(false);
     setError('');
   };
