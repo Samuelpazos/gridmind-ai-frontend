@@ -47,3 +47,7 @@ test('recent legacy simulation origin', () => {
 test('mixed recent origins', () => {
   assert.equal(recentDataSourceLabel('MIXED'), 'Datos: Mixtos');
 });
+
+test('missing recent origin', () => {
+  assert.equal(recentDataSourceLabel(undefined), 'Datos: Sin lecturas recientes');
+});
