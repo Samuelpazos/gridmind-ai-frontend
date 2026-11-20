@@ -67,3 +67,7 @@ test('rounded failure probability', () => {
 test('failure probability rounding down', () => {
   assert.equal(probabilityLabel(0.564), '56%');
 });
+
+test('missing failure probability', () => {
+  assert.equal(probabilityLabel(null), '—');
+});
