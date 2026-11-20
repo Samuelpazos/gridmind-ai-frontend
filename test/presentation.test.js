@@ -59,3 +59,7 @@ test('zero failure probability', () => {
 test('maximum failure probability', () => {
   assert.equal(probabilityLabel(1), '100%');
 });
+
+test('rounded failure probability', () => {
+  assert.equal(probabilityLabel(0.567), '57%');
+});
