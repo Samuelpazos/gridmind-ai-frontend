@@ -65,3 +65,7 @@ Choose an asset with an existing reading and run a scenario with a different tar
 ## FE-16 · Incomplete Claude prediction
 
 Request a Claude prediction for an asset with only a temperature reading. Check that the dialog explains that required readings are missing.
+
+## FE-17 · Claude demonstration prediction
+
+Use an asset with all four ESP32 channels. Request a prediction in a test environment with Claude configured. Check that the result identifies the estimate as a demonstration.
