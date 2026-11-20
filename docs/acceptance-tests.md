@@ -77,3 +77,7 @@ Use an isolated backend without a Claude key and request a prediction for an ass
 ## FE-19 · Refresh after removing a filter
 
 In an inventory with multiple asset states, set a state filter and then reset it to **Todos**. Check that assets from the original tab are visible again.
+
+## FE-20 · Switch asset detail
+
+Open the readings for one asset, close the dialog and open another asset. Check that the second dialog names the second asset and uses its own sensor values.
