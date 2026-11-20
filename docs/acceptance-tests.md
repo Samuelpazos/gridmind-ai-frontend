@@ -69,3 +69,7 @@ Request a Claude prediction for an asset with only a temperature reading. Check 
 ## FE-17 · Claude demonstration prediction
 
 Use an asset with all four ESP32 channels. Request a prediction in a test environment with Claude configured. Check that the result identifies the estimate as a demonstration.
+
+## FE-18 · Claude provider unavailable
+
+Use an isolated backend without a Claude key and request a prediction for an asset with four readings. Check that the error is visible and the dialog can be closed.
