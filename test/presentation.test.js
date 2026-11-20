@@ -43,3 +43,7 @@ test('recent simulation origin', () => {
 test('recent legacy simulation origin', () => {
   assert.equal(recentDataSourceLabel('SIMULATED'), 'Datos: Simulados');
 });
+
+test('mixed recent origins', () => {
+  assert.equal(recentDataSourceLabel('MIXED'), 'Datos: Mixtos');
+});
