@@ -87,3 +87,7 @@ test('whole temperature reading', () => {
 test('localized voltage precision', () => {
   assert.equal(simulationMeasurement(12.345, 'kV'), '12,35 kV');
 });
+
+test('negative temperature reading', () => {
+  assert.equal(simulationMeasurement(-5.2, '°C'), '-5,2 °C');
+});
