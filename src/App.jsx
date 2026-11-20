@@ -871,6 +871,10 @@ function AlertsPage({ alerts, onAcknowledge, pendingId, readOnly }) {
               <div className="alert-title-row"><h3>{alert.transformerCode || alert.transformerName || 'Evento de la red'}</h3><StatusPill value={alert.severity} /></div>
               <p>{alert.message || 'Se detectó un cambio en el estado del activo.'}</p>
               <div className="alert-meta"><span><Factory size={14} />{alert.substationName || 'Subestación sin identificar'}</span><span><Clock3 size={14} />{dateLabel(alert.createdAt)}</span>{alert.acknowledged && <span><CheckCircle2 size={14} />Revisada por {alert.acknowledgedBy || 'operador'}</span>}</div>
+              <div className="alert-meta">
+                <span>Origen: {readingSourceLabel(alert.readingSource, true) || alertSourceLabels[alert.source] || 'Evento registrado'}</span>
+                {alert.readingTimestamp && <span>Lectura: {dateLabel(alert.readingTimestamp)}</span>}
+              </div>
               <AlertAssistant alertId={alert.id} />
             </div>
             {!alert.acknowledged && !readOnly && <button className="button button-outline" onClick={() => onAcknowledge(alert.id)} disabled={pendingId === alert.id}>{pendingId === alert.id ? <Loader2 className="spin" size={16} /> : <Check size={16} />} Marcar revisada</button>}
