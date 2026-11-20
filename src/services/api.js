@@ -33,7 +33,7 @@ export const getAlerts = () => api.get('/alerts');
 export const acknowledgeAlert = (id) => api.post(`/alerts/${id}/ack`);
 export const getClaudeStatus = () => api.get('/alerts/ai/status');
 export const getTelemetryStatus = () => api.get('/telemetry/status');
-export const explainAlert = (id) => api.post(`/alerts/${id}/explanation`);
+export const askAlertAssistant = (id, question) => api.post(`/alerts/${id}/assistant`, question);
 
 export const getPredictions = () => api.get('/predictions');
 export const runSimulation = (request) => api.post('/simulations', request);
@@ -49,6 +49,8 @@ export const setStrategyConfig = (strategyName, forceDegradedMode = false) =>
 export const setSimulatorConfig = (active, scenario) =>
   api.put('/config/simulator', { active, scenario });
 export const getSimulatorConfig = () => api.get('/config/simulator');
+export const applyManualTelemetry = (transformerId, values) => api.put('/config/simulator/manual', { transformerId, values });
+export const clearManualTelemetry = () => api.delete('/config/simulator/manual');
 
 export const getModelInfo = () => api.get('/model/info');
 export const getMaintenances = () => api.get('/maintenances');
@@ -56,7 +58,7 @@ export const completeMaintenance = (id, resultNotes = 'Mantenimiento completado'
   api.post(`/maintenances/${id}/complete`, { resultNotes });
 
 export const getHistoryLogs = () => api.get('/history');
-export const getHealth = () => axios.get(new URL('/health', BACKEND_BASE_URL.origin).toString());
+export const getHealth = () => axios.get(new URL('/health', BACKEND_BASE_URL.origin).toString(), { withCredentials: true });
 export const getCsrfToken = () => api.get('/auth/csrf');
 export const getCurrentUser = () => api.get('/auth/me');
 const loopbackHosts = new Set(['localhost', '127.0.0.1', '[::1]']);

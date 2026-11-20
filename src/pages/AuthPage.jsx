@@ -34,7 +34,6 @@ export default function AuthPage({ onAuthenticated, connectionError }) {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const registering = mode === 'register';
-  const administrator = mode === 'admin';
 
   const submit = async (event) => {
     event.preventDefault();
@@ -50,8 +49,8 @@ export default function AuthPage({ onAuthenticated, connectionError }) {
       if (registering) {
         await registerAccount({ displayName, email, password });
       }
-      const response = await login({ email, password, administrator });
-      onAuthenticated(response.data, administrator);
+      const response = await login({ email, password });
+      onAuthenticated(response.data);
     } catch (requestError) {
       setError(getAuthenticationErrorMessage(requestError));
     } finally {
@@ -78,8 +77,8 @@ export default function AuthPage({ onAuthenticated, connectionError }) {
         <div className="auth-heading">
           <span className="auth-icon"><LockKeyhole size={19} /></span>
           <span className="eyebrow">CENTRO DE CONTROL</span>
-          <h1 id="auth-title">{registering ? 'Crea tu cuenta' : administrator ? 'Acceso de administrador' : 'Inicia sesión'}</h1>
-          <p>{registering ? 'Regístrate para acceder al monitoreo de la red.' : administrator ? 'Ingresa el correo y la contraseña de tu cuenta administradora.' : 'Accede de forma segura a GridMind AI.'}</p>
+          <h1 id="auth-title">{registering ? 'Crea tu cuenta' : 'Inicia sesión'}</h1>
+          <p>{registering ? 'Crea tu espacio privado para monitorear y simular transformadores.' : 'Accede a tu inventario de GridMind AI.'}</p>
         </div>
 
         {(connectionError || error) && (
@@ -115,30 +114,19 @@ export default function AuthPage({ onAuthenticated, connectionError }) {
                   </button>
                 </span>
               </div>
-              <p className="auth-role-note">Las cuentas registradas reciben acceso de operador. El administrador se configura de forma segura en el backend.</p>
+              <p className="auth-role-note">Empiezas con un inventario vacío. Puedes agregar tus equipos o cargar un ejemplo.</p>
             </>
           )}
           <button className="button button-primary button-wide auth-submit" type="submit" disabled={submitting}>
-            {submitting ? 'Procesando…' : registering ? 'Crear cuenta y entrar' : administrator ? 'Entrar a Activos' : 'Entrar a GridMind'}
+            {submitting ? 'Procesando…' : registering ? 'Crear cuenta y entrar' : 'Entrar a GridMind'}
           </button>
-          {mode === 'login' && (
-            <button className="button button-outline button-wide" type="button" onClick={() => switchMode('admin')} disabled={submitting}>
-              Entrar como administrador
-            </button>
-          )}
         </form>
 
         <p className="auth-switch">
-          {administrator ? (
-            <button type="button" disabled={submitting} onClick={() => switchMode('login')}>Volver al inicio de sesión</button>
-          ) : (
-            <>
-              {registering ? '¿Ya tienes una cuenta?' : '¿Primera vez en GridMind?'}{' '}
-              <button type="button" disabled={submitting} onClick={() => switchMode(registering ? 'login' : 'register')}>
-                {registering ? 'Inicia sesión' : 'Crear cuenta'}
-              </button>
-            </>
-          )}
+          {registering ? '¿Ya tienes una cuenta?' : '¿Primera vez en GridMind?'}{' '}
+          <button type="button" disabled={submitting} onClick={() => switchMode(registering ? 'login' : 'register')}>
+            {registering ? 'Inicia sesión' : 'Crear cuenta'}
+          </button>
         </p>
         <p className="auth-security-note">Las contraseñas se protegen con hash BCrypt y el acceso usa una sesión segura.</p>
       </section>

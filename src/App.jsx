@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
   Archive,
@@ -32,8 +32,6 @@ import {
   Zap,
 } from 'lucide-react';
 import AuthPage from './pages/AuthPage';
-import ModelInfo from './pages/ModelInfo';
-import useTelemetryStream from './hooks/useTelemetryStream';
 import { readingSourceLabel, recentDataSourceLabel } from './utils/telemetry';
 import {
   acknowledgeAlert,
@@ -49,13 +47,14 @@ import {
   getCsrfToken,
   getCurrentUser,
   getMaintenances,
-  getModelInfo,
   getSimulationHistory,
   getSimulatorConfig,
+  applyManualTelemetry,
+  clearManualTelemetry,
   getTelemetryStatus,
   undoCommand,
   logout,
-  explainAlert,
+  askAlertAssistant,
   executeCommand,
   predictComponentWithClaude,
   runSimulation,
@@ -70,7 +69,6 @@ const navigation = [
   { id: 'assets', label: 'Activos', description: 'Subestaciones y equipos', icon: Factory },
   { id: 'alerts', label: 'Alertas', description: 'Eventos que necesitan atención', icon: Bell },
   { id: 'simulator', label: 'Simulador', description: 'Prueba un escenario hipotético', icon: SlidersHorizontal },
-  { id: 'model', label: 'Información del Modelo', description: 'Origen de datos y métricas del modelo', icon: Cpu },
   { id: 'operations', label: 'Operaciones', description: 'Mantenimiento y configuración', icon: Settings2 },
 ];
 
@@ -228,7 +226,7 @@ function AssetReadingsDialog({ asset, onClose, onLinkSensor }) {
         {canLink && (
           <form className="transformer-form" onSubmit={submitSensor}>
             <h3>Vincular sensor de temperatura</h3>
-            <p className="form-help">Copia el código SENSOR_CODE que usa tu ESP32. Si aún no lo tienes, puedes volver luego desde Activos.</p>
+            <p className="form-help">Copia el código del sensor que muestra el portal de configuración del ESP32. Puedes volver después desde Activos.</p>
             <label className="form-field">
               <span>Código del sensor</span>
               <input value={sensorCode} onChange={(event) => setSensorCode(event.target.value)} maxLength={50} required placeholder="Ej. SN-001-TMP" />
@@ -650,6 +648,24 @@ function AssetsPage({
     if (result === true) onLoadArchived();
   };
 
+  const [exampleError, setExampleError] = useState('');
+
+  const loadExample = async () => {
+    setExampleError('');
+    const result = await onCreateTransformer({
+      substationType: 'URBAN',
+      substationName: 'Subestación de ejemplo',
+      substationLocation: 'Entorno de simulación',
+      transformerName: 'Transformador residencial de ejemplo',
+      assetType: 'TEST',
+      ratingKva: 750,
+      ageYears: 4,
+      sensorTypes: ['TEMPERATURE', 'CURRENT'],
+    });
+    if (result?.id) selectAssetType('TEST');
+    else setExampleError(result || 'No se pudo cargar el ejemplo.');
+  };
+
   const selectAssetType = (type) => {
     setQuery('');
     setFilter('ALL');
@@ -661,9 +677,17 @@ function AssetsPage({
       <SectionHeading
         eyebrow="INVENTARIO DE RED"
         title="Activos"
-        description="Administra los transformadores reales y simulados."
+        description="Administra los transformadores reales y simulados de tu cuenta."
         action={canManageAssets && <button className="button button-primary" onClick={() => setShowCreateForm(true)}><Plus size={16} />Agregar transformador</button>}
       />
+      {canManageAssets && !assets.some((asset) => asset.assetType === 'TEST') && (
+        <section className="surface-card">
+          <button type="button" className="button button-outline" disabled={creating} onClick={loadExample}>
+            <SlidersHorizontal size={16} />Cargar equipos de ejemplo
+          </button>
+          {exampleError && <p className="form-error" role="alert">{exampleError}</p>}
+        </section>
+      )}
       <div className={`notice-banner ${claudeEnabled ? '' : 'error-banner'}`}><Sparkles size={17} /><span>{claudeEnabled ? 'Las predicciones de Claude se ejecutan manualmente al pulsar el botón de cada transformador; no se consulta la API en cada lectura.' : claudeUnavailableMessage}</span></div>
       <div className="asset-tabs" role="tablist" aria-label="Tipo de transformadores">
         <button id="hardware-assets-tab" type="button" role="tab" aria-selected={assetType === 'HARDWARE'} aria-controls="asset-inventory-panel" className={assetType === 'HARDWARE' ? 'active' : ''} onClick={() => selectAssetType('HARDWARE')}>
@@ -736,7 +760,70 @@ function AssetsPage({
   );
 }
 
-function AlertsPage({ alerts, onAcknowledge, onExplain, explanations, explanationErrors, claudeEnabled, claudeUnavailableMessage, explainingId, pendingId, readOnly }) {
+const alertQuestions = [
+  ['event', '¿Qué pasó?'],
+  ['time', '¿Desde cuándo?'],
+  ['next', '¿Qué reviso primero?'],
+];
+
+function AlertAssistant({ alertId }) {
+  const [open, setOpen] = useState(false);
+  const [question, setQuestion] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState('');
+
+  const ask = async (label, topic) => {
+    if (pending || !label.trim()) return;
+    setPending(true);
+    setError('');
+    try {
+      const { data } = await askAlertAssistant(alertId, { topic, question: topic ? undefined : label.trim() });
+      setMessages((previous) => [...previous, { ...data, question: label.trim() }]);
+      if (!topic) setQuestion('');
+    } catch (requestError) {
+      setError(errorText(requestError));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const readings = messages.at(-1)?.readings;
+  return (
+    <div className="ai-explanation-actions">
+      <button type="button" className="button button-outline compact" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <Sparkles size={15} /> {open ? 'Cerrar asistente' : 'Explícame esta alerta'}
+      </button>
+      {open && <section className="alert-assistant" aria-label="Asistente de alertas">
+        <div className="alert-assistant-questions">
+          {alertQuestions.map(([topic, label]) => <button key={topic} type="button" className="button button-outline compact" disabled={pending} onClick={() => ask(label, topic)}>{label}</button>)}
+        </div>
+        <div aria-live="polite" role="log">
+          {messages.map((message, index) => <div key={index} className="ai-explanation">
+            <Sparkles size={16} />
+            <div><strong>{message.question}</strong><p>{message.answer}</p><small>{message.provider}</small></div>
+          </div>)}
+          {pending && <p className="quiet-note">Consultando la alerta…</p>}
+        </div>
+        {error && <p className="ai-error" role="alert">{error}</p>}
+        {readings && <details className="alert-assistant-evidence">
+          <summary>Fuentes de la respuesta</summary>
+          <p>Registro de esta alerta y lecturas guardadas durante los cinco minutos previos.</p>
+          {readings.length ? <ul>{readings.map((reading, index) =>
+            <li key={index}>{reading.sensor} · {reading.value.toLocaleString('es-CO')} {reading.unit} · {dateLabel(reading.timestamp)} · {reading.source === 'HARDWARE' ? 'Hardware' : 'Simulación'}</li>
+          )}</ul> : <p>Sin lecturas guardadas en ese intervalo.</p>}
+        </details>}
+        <form className="alert-assistant-questions" onSubmit={(event) => { event.preventDefault(); ask(question); }}>
+          <input className="form-input" aria-label="Pregunta sobre esta alerta" placeholder="Escribe una pregunta sobre esta alerta" value={question} maxLength={500} onChange={(event) => setQuestion(event.target.value)} />
+          <button className="button button-primary compact" disabled={pending || !question.trim()}>Preguntar</button>
+        </form>
+      </section>}
+    </div>
+  );
+}
+
+
+function AlertsPage({ alerts, onAcknowledge, pendingId, readOnly }) {
   const [filter, setFilter] = useState('OPEN');
   const alertGroups = [
     { type: 'HARDWARE', label: 'Transformadores reales', icon: Cpu, tone: 'hardware' },
@@ -746,7 +833,6 @@ function AlertsPage({ alerts, onAcknowledge, onExplain, explanations, explanatio
   return (
     <div className="page-stack">
       <SectionHeading eyebrow="CENTRO DE ATENCIÓN" title="Alertas" description="Identifica el activo, entiende el evento y registra cuándo fue revisado." action={<label className="select-wrap"><span>Mostrar</span><select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="OPEN">Pendientes</option><option value="ALL">Todas</option><option value="DONE">Reconocidas</option></select><ChevronDown size={15} /></label>} />
-      {!claudeEnabled && <div className="notice-banner"><Sparkles size={17} /><span>{claudeUnavailableMessage}</span></div>}
       {alertGroups.map(({ type, label, icon: Icon, tone }) => {
         const groupAlerts = visibleAlerts.filter((alert) => alert.assetType === type);
         return (
@@ -764,14 +850,7 @@ function AlertsPage({ alerts, onAcknowledge, onExplain, explanations, explanatio
               <div className="alert-title-row"><h3>{alert.transformerCode || alert.transformerName || 'Evento de la red'}</h3><StatusPill value={alert.severity} /></div>
               <p>{alert.message || 'Se detectó un cambio en el estado del activo.'}</p>
               <div className="alert-meta"><span><Factory size={14} />{alert.substationName || 'Subestación sin identificar'}</span><span><Clock3 size={14} />{dateLabel(alert.createdAt)}</span>{alert.acknowledged && <span><CheckCircle2 size={14} />Revisada por {alert.acknowledgedBy || 'operador'}</span>}</div>
-              <div className="ai-explanation-actions">
-                <button className="button button-outline compact" onClick={() => onExplain(alert.id)} disabled={!claudeEnabled || explainingId === alert.id} title={claudeEnabled ? 'Generar explicación con Claude' : claudeUnavailableMessage}>
-                  {explainingId === alert.id ? <Loader2 className="spin" size={15} /> : <Sparkles size={15} />}
-                  {explainingId === alert.id ? 'Consultando Claude…' : 'Explicar con Claude'}
-                </button>
-                {explanationErrors[alert.id] && <span className="ai-error">{explanationErrors[alert.id]}</span>}
-              </div>
-              {explanations[alert.id] && <div className="ai-explanation"><Sparkles size={16} /><div><strong>Explicación de Claude</strong><p>{explanations[alert.id].explanation}</p><small>{explanations[alert.id].model} · {dateLabel(explanations[alert.id].generatedAt)}</small></div></div>}
+              <AlertAssistant alertId={alert.id} />
             </div>
             {!alert.acknowledged && !readOnly && <button className="button button-outline" onClick={() => onAcknowledge(alert.id)} disabled={pendingId === alert.id}>{pendingId === alert.id ? <Loader2 className="spin" size={16} /> : <Check size={16} />} Marcar revisada</button>}
           </article>
@@ -915,6 +994,7 @@ function SimulatorPage({ assets, history, onRefresh, selectedAssetId, onError })
                   <span className="simulation-probability">Probabilidad estimada de falla <b>{probabilityLabel(result.simulatedProbability)}</b></span>
                 </div>
               </div>
+              <p className="quiet-note">Resultado hipotético. El porcentaje depende del método de análisis y de los valores usados para el escenario. Para un equipo real, contrasta el resultado con las lecturas y los límites del equipo.</p>
               <div className="recommendation-box"><Sparkles size={17} /><p><strong>Recomendación del modelo</strong><br />{result.recommendation || 'Revisa las condiciones del activo y repite el análisis con datos actualizados.'}</p></div>
             </>
           ) : (
@@ -930,16 +1010,148 @@ function SimulatorPage({ assets, history, onRefresh, selectedAssetId, onError })
   );
 }
 
-function OperationsPage({ maintenances, assets, alerts, health, modelInfo, telemetryStatus, simulatorConfig, onComplete, onCommand, onUndoCommand, pendingId, onStrategyChange, onSimulatorChange, canConfigure, readOnly }) {
-  const [strategy, setStrategy] = useState(health?.activeStrategy || 'SUPERVISED_MODEL_STRATEGY');
-  const [degraded, setDegraded] = useState(Boolean(health?.degradedMode));
+const riskStrategies = {
+  SUPERVISED_MODEL_STRATEGY: {
+    label: 'Modelo supervisado (Random Forest)',
+    detail: 'Combina lecturas y antigüedad para estimar el riesgo. Úsalo para obtener una evaluación general con el modelo entrenado en casos sintéticos.',
+  },
+  THRESHOLD_STRATEGY: {
+    label: 'Reglas por umbral',
+    detail: 'Suma riesgo cuando se superan límites definidos de temperatura, corriente o vibración. Úsalo si quieres entender qué condición hizo subir el riesgo.',
+  },
+  ISOLATION_FOREST_STRATEGY: {
+    label: 'Detección de anomalías (Isolation Forest)',
+    detail: 'Busca combinaciones de lecturas poco habituales. Úsalo para detectar comportamientos que se apartan del patrón esperado.',
+  },
+  WEIGHTED_AGE_STRATEGY: {
+    label: 'Riesgo por antigüedad',
+    detail: 'Parte de los años de servicio y añade peso si la temperatura o la vibración aumentan. Úsalo cuando el desgaste del equipo sea una prioridad.',
+  },
+};
+
+function ManualTelemetryScenario({ assets, configuration, onSave, onClear, onViewAlerts }) {
+  const [draft, setDraft] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const active = configuration?.manualScenario;
+  const eligible = assets.filter((asset) => asset.assetType === 'TEST'
+    && asset.sensors?.some((sensor) => sensor.status === 'ACTIVE'));
+  const chosen = draft?.transformerId ?? active?.transformerId;
+  const selected = eligible.find((asset) => asset.id === chosen) ?? eligible[0];
+  const sensors = sensorOptions.flatMap(({ value, label }) => {
+    const sensor = selected?.sensors.find((item) => item.type === value && item.status === 'ACTIVE');
+    return sensor ? [{ type: value, label, unit: sensor.unit }] : [];
+  });
+  const values = draft && draft.transformerId === selected?.id
+    ? draft.values : active?.transformerId === selected?.id ? active?.values ?? {} : {};
+  const configuredAsset = eligible.find((asset) => asset.id === active?.transformerId);
+  const populated = sensors.filter(({ type }) => values[type] != null && values[type] !== '');
+
+  const apply = async (event) => {
+    event.preventDefault();
+    if (!selected || !populated.length || busy) return;
+    setBusy(true);
+    try {
+      const fixedValues = Object.fromEntries(populated.map(({ type }) => [type, Number(values[type])]));
+      if (await onSave(selected.id, fixedValues)) setDraft(null);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const clear = async () => {
+    setBusy(true);
+    try {
+      if (await onClear()) setDraft(null);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="surface-card" aria-labelledby="manual-telemetry-title">
+      <div className="card-heading">
+        <div>
+          <h3 id="manual-telemetry-title">Probar fallas con lecturas simuladas</h3>
+          <p className="analysis-copy">Fija lecturas de un equipo de prueba. GridMind las analiza y muestra las alertas que correspondan.</p>
+        </div>
+        {active && <button type="button" className="button button-outline compact" onClick={onViewAlerts}><Bell size={15} />Ver alertas</button>}
+      </div>
+      {active && (
+        <div className="analysis-current" role="status">Escenario activo
+          <strong>{configuredAsset?.name || 'Equipo simulado'}</strong>
+          {Object.entries(active.values).map(([type, value]) => {
+            const label = sensorOptions.find((option) => option.value === type)?.label || type;
+            const unit = configuredAsset?.sensors.find((sensor) => sensor.type === type)?.unit || '';
+            return <span key={type}>{label} {simulationMeasurement(value, unit)}</span>;
+          })}
+        </div>
+      )}
+      {selected ? (
+        <form onSubmit={apply} className="strategy-guide">
+          <label className="form-field">
+            <span>Transformador simulado</span>
+            <select value={selected.id} onChange={(event) => setDraft({ transformerId: event.target.value, values: {} })} disabled={busy}>
+              {eligible.map((asset) => <option value={asset.id} key={asset.id}>{asset.code} · {asset.name}</option>)}
+            </select>
+          </label>
+          <div className="form-grid">
+            {sensors.map(({ type, label, unit }) => (
+              <label className="form-field" key={type}>
+                <span>{label} ({unit})</span>
+                <input type="number" step="any" min={type === 'TEMPERATURE' ? '-273.15' : '0'} max="1000000"
+                  value={values[type] ?? ''} placeholder="Lectura normal"
+                  onChange={(event) => setDraft({ transformerId: selected.id, values: { ...values, [type]: event.target.value } })}
+                  disabled={busy} />
+              </label>
+            ))}
+          </div>
+          <p className="analysis-copy">Los campos vacíos siguen generando lecturas normales para este equipo.</p>
+          <div className="strategy-actions">
+            {sensors.some(({ type }) => type === 'TEMPERATURE') && (
+              <button type="button" className="button button-outline" disabled={busy}
+                onClick={() => setDraft({ transformerId: selected.id, values: { TEMPERATURE: 100 } })}>
+                Cargar ejemplo de sobrecalentamiento
+              </button>
+            )}
+            <button type="submit" className="button button-primary" disabled={busy || !populated.length}>Aplicar escenario manual</button>
+          </div>
+        </form>
+      ) : <p className="quiet-note">Agrega un transformador simulado con sensores activos en Activos.</p>}
+      {active && (
+        <div className="strategy-guide">
+          <button type="button" className="button button-outline" onClick={clear} disabled={busy}>
+            {configuration.active && configuration.scenario === 'NORMAL' ? 'Volver a lecturas normales' : 'Quitar escenario manual'}
+          </button>
+          <p className="analysis-copy">{configuration.active
+            ? 'El equipo vuelve al escenario general. Las alertas generadas siguen en el historial.'
+            : 'Se detienen las lecturas manuales. El simulador general sigue pausado.'}</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function OperationsPage({ maintenances, assets, alerts, health, telemetryStatus, simulatorConfig, onComplete, onCommand, onUndoCommand, pendingId, onStrategyChange, onSimulatorChange, onManualTelemetry, onClearManualTelemetry, onViewAlerts, canConfigure, readOnly }) {
+  const [draft, setDraft] = useState(null);
+  const [savingStrategy, setSavingStrategy] = useState(false);
+  const configuredStrategy = health?.configuredStrategy || health?.activeStrategy;
+  const savedStrategy = Object.hasOwn(riskStrategies, configuredStrategy) ? configuredStrategy : 'SUPERVISED_MODEL_STRATEGY';
+  const savedDegraded = Boolean(health?.degradedMode);
+  const strategy = draft?.strategy ?? savedStrategy;
+  const degraded = draft?.degraded ?? savedDegraded;
+  const activeStrategy = savedDegraded ? riskStrategies.THRESHOLD_STRATEGY.label : riskStrategies[savedStrategy].label;
+  const hasUnsavedChanges = strategy !== savedStrategy || degraded !== savedDegraded;
   const [scenario, setScenario] = useState(simulatorConfig?.scenario || 'NORMAL');
   const simulatorActive = Boolean(telemetryStatus?.simulatorActive);
 
-  useEffect(() => {
-    setStrategy(health?.activeStrategy || 'SUPERVISED_MODEL_STRATEGY');
-    setDegraded(Boolean(health?.degradedMode));
-  }, [health]);
+  async function saveStrategy() {
+    setSavingStrategy(true);
+    try {
+      if (await onStrategyChange(strategy, degraded)) setDraft(null);
+    } finally {
+      setSavingStrategy(false);
+    }
+  }
 
   useEffect(() => {
     setScenario(simulatorConfig?.scenario || 'NORMAL');
@@ -949,7 +1161,7 @@ function OperationsPage({ maintenances, assets, alerts, health, modelInfo, telem
     <div className="page-stack">
       <SectionHeading eyebrow="HERRAMIENTAS DE OPERACIÓN" title="Operaciones" description="Gestiona recomendaciones de mantenimiento y revisa el estado de los servicios." />
       <section className="surface-card">
-        <div className="card-heading"><div><span className="eyebrow">PLAN DE TRABAJO</span><h3>Mantenimiento recomendado</h3></div><span className="count-chip">{maintenances.filter((item) => item.status !== 'COMPLETED').length} pendientes</span></div>
+        <div className="card-heading"><div><span className="eyebrow">PLAN DE TRABAJO</span><h3>Mantenimiento programado y recomendado</h3></div><span className="count-chip">{maintenances.filter((item) => item.status !== 'COMPLETED').length} pendientes</span></div>
         <div className="maintenance-list">
           {maintenances.map((item) => (
             <article className="maintenance-row" key={item.id}>
@@ -962,24 +1174,50 @@ function OperationsPage({ maintenances, assets, alerts, health, modelInfo, telem
         </div>
       </section>
 
+      {canConfigure && (
+        <ManualTelemetryScenario assets={assets} configuration={simulatorConfig}
+          onSave={onManualTelemetry} onClear={onClearManualTelemetry} onViewAlerts={onViewAlerts} />
+      )}
       <div className="operations-grid">
         <article className="surface-card">
           <div className="card-heading"><div><span className="eyebrow">SISTEMA DE ANÁLISIS</span><h3>Configuración de IA</h3></div><span className="form-icon"><Cpu size={18} /></span></div>
-          <label className="field-label">Estrategia activa
-            <select value={strategy} onChange={(event) => setStrategy(event.target.value)} disabled={!canConfigure}>
-              <option value="SUPERVISED_MODEL_STRATEGY">Modelo supervisado</option><option value="THRESHOLD_STRATEGY">Reglas por umbral</option><option value="ISOLATION_FOREST_STRATEGY">Isolation Forest</option><option value="WEIGHTED_AGE_STRATEGY">Riesgo y antigüedad</option>
+          <p className="analysis-copy">Elige cómo se calcula el riesgo en el monitoreo y en el Simulador de tu cuenta.</p>
+          <div className="analysis-current">En uso <strong>{activeStrategy}</strong>{savedDegraded && <span>Modo de respaldo activo</span>}</div>
+          <label className="field-label strategy-field">Método de análisis
+            <select value={strategy} aria-describedby="strategy-description"
+              onChange={(event) => setDraft({ strategy: event.target.value, degraded })} disabled={!canConfigure || savingStrategy}>
+              {Object.entries(riskStrategies).map(([value, method]) => (
+                <option value={value} key={value}>{method.label}</option>
+              ))}
             </select>
           </label>
-          <label className="toggle-row"><span><strong>Modo degradado</strong><small>Usa reglas de respaldo si el modelo no responde.</small></span><input type="checkbox" checked={degraded} onChange={(event) => setDegraded(event.target.checked)} disabled={!canConfigure} /></label>
-          {canConfigure ? <button className="button button-primary" onClick={() => onStrategyChange(strategy, degraded)}><Check size={16} />Guardar configuración</button> : <p className="quiet-note">Solo administradores y demostradores pueden cambiar la estrategia.</p>}
-          <p className="quiet-note">{modelInfo?.modelName || modelInfo?.name || 'Modelo de análisis GridMind'}{modelInfo?.version ? ` · ${modelInfo.version}` : ''}</p>
+          <p id="strategy-description" className="analysis-copy" aria-live="polite">{riskStrategies[strategy].detail}</p>
+          <details className="strategy-guide">
+            <summary>Comparar los métodos de análisis</summary>
+            <dl>{Object.entries(riskStrategies).map(([value, method]) => (
+              <div key={value}><dt>{method.label}</dt><dd>{method.detail}</dd></div>
+            ))}</dl>
+          </details>
+          <label className="toggle-row strategy-toggle">
+            <span><strong>Forzar reglas de respaldo</strong><small>Actívalo para usar reglas por umbral temporalmente y probar el modo de respaldo. Al desactivarlo y guardar, se vuelve al método elegido.</small></span>
+            <input type="checkbox" checked={degraded} onChange={(event) => setDraft({ strategy, degraded: event.target.checked })} disabled={!canConfigure || savingStrategy} />
+          </label>
+          {canConfigure && (
+            <div className="strategy-actions">
+              <button type="button" className="button button-primary" onClick={saveStrategy} disabled={!hasUnsavedChanges || savingStrategy}>
+                {savingStrategy ? <Loader2 className="spin" size={16} /> : <Check size={16} />}
+                {savingStrategy ? 'Guardando…' : 'Guardar configuración'}
+              </button>
+              {hasUnsavedChanges && !savingStrategy && <span className="analysis-copy" role="status">Cambios sin guardar</span>}
+            </div>
+          )}
         </article>
         <article className="surface-card system-card">
           <div className="card-heading"><div><span className="eyebrow">SERVICIOS</span><h3>Estado de conexión</h3></div><Activity size={19} className="green-icon" /></div>
           <div className="service-line"><span>API GridMind</span><span className="service-state"><i />{health?.status === 'UP' ? 'En línea' : 'Sin conexión'}</span></div>
-          <div className="service-line"><span>Base de datos</span><span className="service-state"><i />{health?.database || 'Esperando conexión'}</span></div>
-          <div className="service-line"><span>WebSocket</span><span className="service-state"><i />{health?.websocket || 'No disponible'}</span></div>
-          <div className="system-foot"><span>Java 25</span><span>{health?.activeStrategy || 'Estrategia sin cargar'}</span></div>
+          <div className="service-line"><span>Base de datos</span><span className="service-state"><i />{health?.database === 'PostgreSQL Connected' ? 'PostgreSQL conectado' : health?.database ? 'Sin conexión' : 'Esperando conexión'}</span></div>
+          <div className="service-line"><span>Actualización de datos</span><span className="service-state"><i />Cada 5 segundos</span></div>
+          <div className="system-foot"><span>Java 25</span><span>{activeStrategy}</span></div>
         </article>
       </div>
       <section className="surface-card">
@@ -993,11 +1231,10 @@ function OperationsPage({ maintenances, assets, alerts, health, modelInfo, telem
             <option value="SUDDEN_FAILURE">Falla súbita</option>
           </select>
         </label>}
-        {canConfigure && <button className="button button-primary" disabled={!telemetryStatus || pendingId === 'simulator'} onClick={() => onSimulatorChange(simulatorActive, scenario)}>{pendingId === 'simulator' ? 'Actualizando…' : 'Aplicar escenario'}</button>}
-              <p className="quiet-note">Resultado hipotético. El porcentaje depende del método de análisis y de los valores usados para el escenario. Para un equipo real, contrasta el resultado con las lecturas y los límites del equipo.</p>
+        {canConfigure && <button className="button button-primary" disabled={!telemetryStatus || pendingId === 'simulator'} onClick={() => onSimulatorChange(simulatorActive, scenario)}>{pendingId === 'simulator' ? 'Actualizando…' : 'Aplicar escenario general'}</button>}
         {canConfigure && <button className="button button-outline" disabled={!telemetryStatus || pendingId === 'simulator'} onClick={() => onSimulatorChange(!simulatorActive, scenario)}>{pendingId === 'simulator' ? 'Actualizando…' : simulatorActive ? 'Pausar simulador' : 'Reanudar simulador'}</button>}
         {!telemetryStatus?.hardwareIngestionEnabled && <p className="quiet-note">El receptor ESP32 se habilita al configurar TELEMETRY_DEVICE_TOKEN en el backend y reiniciarlo.</p>}
-        {!simulatorActive && <p className="quiet-note">El simulador está pausado. Las lecturas de la maqueta podrán entrar sin mezclarse con valores simulados.</p>}
+        {!simulatorActive && <p className="quiet-note">El simulador general está pausado. Puedes probar un escenario manual en un equipo simulado.</p>}
         <p className="quiet-note">{telemetryStatus?.modelValidationNotice || 'La predicción experimental aún debe validarse con mediciones etiquetadas de la maqueta.'}</p>
       </section>
       <section className="surface-card">
@@ -1012,9 +1249,9 @@ function OperationsPage({ maintenances, assets, alerts, health, modelInfo, telem
             <article className="maintenance-row" key={`command-${asset.id}`}>
               <span className="maintenance-icon"><Zap size={17} /></span>
               <div className="maintenance-copy"><strong>{asset.code || asset.name}</strong><p>{asset.substationName || 'Activo de la red'}</p></div>
-              <button className="button button-outline compact" disabled={pendingId === `SIMULATE_FAILURE-${asset.id}`} onClick={() => onCommand('SIMULATE_FAILURE', asset.id)}>
+              {asset.assetType === 'TEST' && <button className="button button-outline compact" disabled={pendingId === `SIMULATE_FAILURE-${asset.id}`} onClick={() => onCommand('SIMULATE_FAILURE', asset.id)}>
                 {pendingId === `SIMULATE_FAILURE-${asset.id}` ? <Loader2 className="spin" size={15} /> : <AlertTriangle size={15} />} Simular falla
-              </button>
+              </button>}
               <button className="button button-outline compact" disabled={pendingId === `SCHEDULE_MAINTENANCE-${asset.id}`} onClick={() => onCommand('SCHEDULE_MAINTENANCE', asset.id)}>
                 {pendingId === `SCHEDULE_MAINTENANCE-${asset.id}` ? <Loader2 className="spin" size={15} /> : <Wrench size={15} />} Programar mantenimiento
               </button>
@@ -1040,40 +1277,6 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authConnectionError, setAuthConnectionError] = useState('');
-  const [page, setPage] = useState('overview');
-  const [selectedAssetId, setSelectedAssetId] = useState('');
-  const [substations, setSubstations] = useState([]);
-  const [archivedAssets, setArchivedAssets] = useState([]);
-  const [archivedLoading, setArchivedLoading] = useState(false);
-  const [archivedError, setArchivedError] = useState('');
-  const [alerts, setAlerts] = useState([]);
-  const [maintenances, setMaintenances] = useState([]);
-  const [simulations, setSimulations] = useState([]);
-  const [health, setHealth] = useState(null);
-  const [telemetryStatus, setTelemetryStatus] = useState(null);
-  const [simulatorConfiguration, setSimulatorConfiguration] = useState(null);
-  const [claudeStatus, setClaudeStatus] = useState({ enabled: false, provider: 'Anthropic Claude', model: 'claude-sonnet-4-5', remainingRequests: null });
-  const [modelInfo, setModelInfo] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [updatedAt, setUpdatedAt] = useState(null);
-  const [connectionError, setConnectionError] = useState('');
-  const [actionError, setActionError] = useState('');
-  const [notice, setNotice] = useState('');
-  const [pendingId, setPendingId] = useState('');
-  const [explainingId, setExplainingId] = useState('');
-  const [explanations, setExplanations] = useState({});
-  const [explanationErrors, setExplanationErrors] = useState({});
-  const [claudePrediction, setClaudePrediction] = useState(null);
-  const [claudePredictionError, setClaudePredictionError] = useState('');
-  const [predictingAssetId, setPredictingAssetId] = useState('');
-
-  const assets = useMemo(() => substations.flatMap((substation) => (substation.transformers || []).map((asset) => ({
-    ...asset,
-    substationName: asset.substationName || substation.name,
-  }))), [substations]);
-  const currentPage = navigation.find((item) => item.id === page) || navigation[0];
-
   useEffect(() => {
     let active = true;
     (async () => {
@@ -1094,6 +1297,59 @@ export default function App() {
     return () => { active = false; };
   }, []);
 
+  const handleSessionExpired = useCallback(() => {
+    setCurrentUser(null);
+    setAuthConnectionError('Tu sesión expiró o ya no es válida. Inicia sesión de nuevo para continuar.');
+  }, []);
+
+  if (authLoading) {
+    return <main className="auth-page"><div className="auth-loading"><span className="brand-mark"><Zap size={20} /></span><p>Conectando con GridMind…</p></div></main>;
+  }
+
+  if (!currentUser) {
+    return <AuthPage onAuthenticated={(user) => {
+      setCurrentUser(user);
+      setAuthConnectionError('');
+    }} connectionError={authConnectionError} />;
+  }
+
+  return <WorkspaceApp key={currentUser.id} currentUser={currentUser}
+    onSessionExpired={handleSessionExpired} onLogout={() => setCurrentUser(null)} />;
+}
+
+
+function WorkspaceApp({ currentUser, onSessionExpired, onLogout }) {
+  const workspaceActive = useRef(false);
+  const [page, setPage] = useState('overview');
+  const [selectedAssetId, setSelectedAssetId] = useState('');
+  const [substations, setSubstations] = useState([]);
+  const [archivedAssets, setArchivedAssets] = useState([]);
+  const [archivedLoading, setArchivedLoading] = useState(false);
+  const [archivedError, setArchivedError] = useState('');
+  const [alerts, setAlerts] = useState([]);
+  const [maintenances, setMaintenances] = useState([]);
+  const [simulations, setSimulations] = useState([]);
+  const [health, setHealth] = useState(null);
+  const [telemetryStatus, setTelemetryStatus] = useState(null);
+  const [simulatorConfiguration, setSimulatorConfiguration] = useState(null);
+  const [claudeStatus, setClaudeStatus] = useState({ enabled: false, provider: 'Anthropic Claude', model: 'claude-sonnet-4-5', remainingRequests: null });
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState(null);
+  const [connectionError, setConnectionError] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [pendingId, setPendingId] = useState('');
+  const [claudePrediction, setClaudePrediction] = useState(null);
+  const [claudePredictionError, setClaudePredictionError] = useState('');
+  const [predictingAssetId, setPredictingAssetId] = useState('');
+
+  const assets = useMemo(() => substations.flatMap((substation) => (substation.transformers || []).map((asset) => ({
+    ...asset,
+    substationName: asset.substationName || substation.name,
+  }))), [substations]);
+  const currentPage = navigation.find((item) => item.id === page) || navigation[0];
+
   const refreshData = useCallback(async () => {
     setRefreshing(true);
     const results = await Promise.allSettled([
@@ -1102,37 +1358,19 @@ export default function App() {
       getAlerts(),
       getMaintenances(),
       getSimulationHistory(),
-      getModelInfo(),
       getClaudeStatus(),
       getTelemetryStatus(),
       getSimulatorConfig(),
     ]);
-    const [healthResult, gridResult, alertsResult, maintenanceResult, simulationResult, modelResult, claudeResult, telemetryResult, simulatorResult] = results;
+    if (!workspaceActive.current) return;
+    const [healthResult, gridResult, alertsResult, maintenanceResult, simulationResult, claudeResult, telemetryResult, simulatorResult] = results;
     const read = (result) => (result.status === 'fulfilled' ? result.value.data : null);
     const sessionExpired = results.some((result) =>
       result.status === 'rejected' && result.reason?.response?.status === 401
     );
 
     if (sessionExpired) {
-      setCurrentUser(null);
-      setAuthConnectionError('Tu sesión expiró o ya no es válida. Inicia sesión de nuevo para continuar.');
-      setPage('overview');
-      setSelectedAssetId('');
-      setSubstations([]);
-      setArchivedAssets([]);
-      setArchivedError('');
-      setAlerts([]);
-      setMaintenances([]);
-      setSimulations([]);
-      setHealth(null);
-      setTelemetryStatus(null);
-      setSimulatorConfiguration(null);
-      setModelInfo(null);
-      setConnectionError('');
-      setActionError('');
-      setNotice('');
-      setLoading(false);
-      setRefreshing(false);
+      onSessionExpired();
       return;
     }
 
@@ -1141,7 +1379,6 @@ export default function App() {
     setAlerts(read(alertsResult) || []);
     setMaintenances(read(maintenanceResult) || []);
     setSimulations(read(simulationResult) || []);
-    setModelInfo(read(modelResult));
     if (claudeResult.status === 'fulfilled') {
       setClaudeStatus(claudeResult.value.data);
     }
@@ -1160,13 +1397,13 @@ export default function App() {
     } else if (failures.length) {
       const firstFailure = failures[0];
       setConnectionError(`El backend responde, pero ${failures.length} solicitud(es) de datos fallaron: ${errorText(firstFailure.reason)}`);
-      console.error('Falló la carga de datos de GridMind:', failures.map((failure) => failure.reason));
+      console.error('Could not load GridMind data:', failures.map((failure) => failure.reason));
     } else {
       setConnectionError('');
     }
     setLoading(false);
     setRefreshing(false);
-  }, []);
+  }, [onSessionExpired]);
 
   const handleLoadArchived = useCallback(async () => {
     setArchivedLoading(true);
@@ -1177,51 +1414,31 @@ export default function App() {
       return true;
     } catch (error) {
       setArchivedError(errorText(error));
-      console.error('No se pudieron cargar los transformadores archivados:', error);
+      console.error('Could not load archived transformers:', error);
       return false;
     } finally {
       setArchivedLoading(false);
     }
   }, []);
 
-  const liveConnection = useTelemetryStream(Boolean(currentUser), refreshData);
-
   useEffect(() => {
-    if (!currentUser) return undefined;
+    workspaceActive.current = true;
     refreshData();
-  }, [refreshData, currentUser]);
-
-  useEffect(() => {
-    if (!currentUser) return undefined;
-    const pollingInterval = liveConnection === 'connected' ? 30000 : 5000;
-    const timer = window.setInterval(refreshData, pollingInterval);
-    return () => window.clearInterval(timer);
-  }, [refreshData, currentUser, liveConnection]);
+    const timer = window.setInterval(refreshData, 5000);
+    return () => {
+      workspaceActive.current = false;
+      window.clearInterval(timer);
+    };
+  }, [refreshData]);
 
   const handleLogout = async () => {
     try {
       await logout();
+      onLogout();
     } catch (error) {
-      console.error('No se pudo cerrar la sesión en el servidor:', error);
-    } finally {
-      setCurrentUser(null);
-      setPage('overview');
-      setArchivedAssets([]);
-      setArchivedError('');
+      setActionError(errorText(error));
     }
   };
-
-  if (authLoading) {
-    return <main className="auth-page"><div className="auth-loading"><span className="brand-mark"><Zap size={20} fill="currentColor" /></span><p>Conectando con GridMind…</p></div></main>;
-  }
-
-  if (!currentUser) {
-    return <AuthPage onAuthenticated={(user, administrator) => {
-      if (administrator && user.role === 'ADMIN') setPage('assets');
-      setCurrentUser(user);
-      setAuthConnectionError('');
-    }} connectionError={authConnectionError} />;
-  }
 
   const runAction = async (action, successMessage) => {
     setActionError('');
@@ -1230,9 +1447,11 @@ export default function App() {
       await action();
       setNotice(successMessage);
       await refreshData();
+      return true;
     } catch (error) {
       setActionError(errorText(error));
-      console.error('La acción de GridMind no se pudo completar:', error);
+      console.error('Could not complete the GridMind action:', error);
+      return false;
     }
   };
 
@@ -1245,31 +1464,27 @@ export default function App() {
   const handleCommand = async (commandName, targetId) => {
     const actionId = `${commandName}-${targetId}`;
     setPendingId(actionId);
-    await runAction(
+    const simulatingFailure = commandName === 'SIMULATE_FAILURE';
+    const successMessage = {
+      SIMULATE_FAILURE: 'Falla simulada. Revisa la alerta crítica en Transformadores simulados.',
+      SCHEDULE_MAINTENANCE: 'Mantenimiento programado. Puedes revisarlo en la lista de abajo.',
+      ACKNOWLEDGE_ALERT: 'Alerta marcada como revisada.',
+    }[commandName] || 'Operación completada.';
+    const completed = await runAction(
       () => executeCommand(commandName, targetId),
-      `Comando ${commandName} ejecutado correctamente.`
+      successMessage
     );
     setPendingId('');
+    if (simulatingFailure || commandName === 'SCHEDULE_MAINTENANCE') {
+      if (simulatingFailure && completed) setPage('alerts');
+      window.scrollTo(0, 0);
+    }
   };
 
   const handleUndoCommand = async () => {
     setPendingId('command-undo');
     await runAction(() => undoCommand(), 'Último comando deshecho correctamente.');
     setPendingId('');
-  };
-
-  const handleExplain = async (id) => {
-    setExplainingId(id);
-    setExplanationErrors((current) => ({ ...current, [id]: '' }));
-    try {
-      const response = await explainAlert(id);
-      setExplanations((current) => ({ ...current, [id]: response.data }));
-    } catch (error) {
-      const message = error.response?.data?.message || errorText(error);
-      setExplanationErrors((current) => ({ ...current, [id]: message }));
-    } finally {
-      setExplainingId('');
-    }
   };
 
   const handleClaudePrediction = async (transformerId) => {
@@ -1301,7 +1516,7 @@ export default function App() {
       setNotice('Transformador agregado correctamente.');
       return data;
     } catch (error) {
-      console.error('No se pudo registrar el transformador:', error);
+      console.error('Could not register the transformer:', error);
       return errorText(error);
     } finally {
       setPendingId('');
@@ -1317,7 +1532,7 @@ export default function App() {
       setNotice('Nombre del transformador actualizado.');
       return true;
     } catch (error) {
-      console.error('No se pudo actualizar el nombre del transformador:', error);
+      console.error('Could not rename the transformer:', error);
       return errorText(error);
     } finally {
       setPendingId('');
@@ -1333,7 +1548,7 @@ export default function App() {
       setNotice('Transformador archivado; sus lecturas e historial se conservaron.');
       return true;
     } catch (error) {
-      console.error('No se pudo archivar el transformador:', error);
+      console.error('Could not archive the transformer:', error);
       return errorText(error);
     } finally {
       setPendingId('');
@@ -1349,7 +1564,7 @@ export default function App() {
       setNotice('Transformador restaurado al inventario activo.');
       return true;
     } catch (error) {
-      console.error('No se pudo restaurar el transformador:', error);
+      console.error('Could not restore the transformer:', error);
       setActionError(errorText(error));
       return false;
     } finally {
@@ -1357,9 +1572,8 @@ export default function App() {
     }
   };
 
-  const handleStrategyChange = async (strategy, forceDegradedMode) => {
-    await runAction(() => setStrategyConfig(strategy, forceDegradedMode), 'Configuración de IA actualizada.');
-  };
+  const handleStrategyChange = (strategy, forceDegradedMode) =>
+    runAction(() => setStrategyConfig(strategy, forceDegradedMode), 'Configuración de IA actualizada.');
 
   const handleSimulatorChange = async (active, scenario) => {
     setPendingId('simulator');
@@ -1395,12 +1609,14 @@ export default function App() {
       onRestoreTransformer={handleRestoreTransformer}
       creating={pendingId === 'create-transformer'}
       actionPendingId={pendingId}
-      canManageAssets={currentUser.role === 'ADMIN'}
+      canManageAssets={currentUser.role !== 'DEMO'}
     />;
-    if (page === 'alerts') return <AlertsPage alerts={alerts} onAcknowledge={handleAcknowledge} onExplain={handleExplain} explanations={explanations} explanationErrors={explanationErrors} claudeEnabled={claudeStatus.enabled} claudeUnavailableMessage={claudeUnavailableMessage} explainingId={explainingId} pendingId={pendingId} readOnly={false} />;
-    if (page === 'simulator') return <SimulatorPage key={selectedAssetId} assets={assets} history={simulations} onRefresh={refreshData} selectedAssetId={selectedAssetId} onError={(error) => { setActionError(errorText(error)); console.error('No se pudo ejecutar la simulación:', error); }} />;
-    if (page === 'model') return <ModelInfo info={modelInfo} />;
-    if (page === 'operations') return <OperationsPage maintenances={maintenances} assets={assets} alerts={alerts} health={health} modelInfo={modelInfo} telemetryStatus={telemetryStatus} simulatorConfig={simulatorConfiguration} onComplete={handleMaintenance} onCommand={handleCommand} onUndoCommand={handleUndoCommand} pendingId={pendingId} onStrategyChange={handleStrategyChange} onSimulatorChange={handleSimulatorChange} canConfigure={['ADMIN', 'DEMO'].includes(currentUser.role)} readOnly={false} />;
+    if (page === 'alerts') return <AlertsPage alerts={alerts} onAcknowledge={handleAcknowledge} pendingId={pendingId} readOnly={false} />;
+    if (page === 'simulator') return <SimulatorPage key={selectedAssetId} assets={assets} history={simulations} onRefresh={refreshData} selectedAssetId={selectedAssetId} onError={(error) => { setActionError(errorText(error)); console.error('Could not run the simulation:', error); }} />;
+    if (page === 'operations') return <OperationsPage maintenances={maintenances} assets={assets} alerts={alerts} health={health} telemetryStatus={telemetryStatus} simulatorConfig={simulatorConfiguration} onComplete={handleMaintenance} onCommand={handleCommand} onUndoCommand={handleUndoCommand} pendingId={pendingId} onStrategyChange={handleStrategyChange} onSimulatorChange={handleSimulatorChange}
+      onManualTelemetry={(id, values) => runAction(() => applyManualTelemetry(id, values), 'Escenario aplicado. Revisa Alertas después de la próxima lectura.')}
+      onClearManualTelemetry={() => runAction(clearManualTelemetry, 'Escenario manual desactivado.')}
+      onViewAlerts={() => setPage('alerts')} canConfigure readOnly={false} />;
     return <Overview assets={assets} alerts={alerts} setPage={setPage} loading={loading} />;
   };
 
@@ -1421,7 +1637,7 @@ export default function App() {
         </nav>
         <div className="sidebar-bottom">
           <div className="help-card"><span className="help-icon"><Sparkles size={16} /></span><strong>Red más inteligente</strong><p>Usa el simulador para explorar escenarios sin riesgo.</p><button onClick={() => setPage('simulator')}>Abrir simulador <ArrowUpRight size={14} /></button></div>
-          <div className="sidebar-user"><span className="avatar">{currentUser.displayName.slice(0, 2).toUpperCase()}</span><span className="sidebar-user-copy"><strong>{currentUser.displayName}</strong><small>{currentUser.role === 'ADMIN' ? 'Administrador' : currentUser.role === 'DEMO' ? 'Demostración · operación limitada' : 'Operador'}</small></span><button className="logout-button" onClick={handleLogout} aria-label="Cerrar sesión" title="Cerrar sesión"><LogOut size={16} /></button></div>
+          <div className="sidebar-user"><span className="avatar">{currentUser.displayName.slice(0, 2).toUpperCase()}</span><span className="sidebar-user-copy"><strong>{currentUser.displayName}</strong><small>Operador</small></span><button className="logout-button" onClick={handleLogout} aria-label="Cerrar sesión" title="Cerrar sesión"><LogOut size={16} /></button></div>
         </div>
       </aside>
 
@@ -1430,7 +1646,7 @@ export default function App() {
           <div className="breadcrumb"><span>GridMind</span><span className="breadcrumb-separator">/</span><strong>{currentPage.label}</strong></div>
           <div className="topbar-actions">
             <span className={`connection-pill ${health?.status === 'UP' ? 'connected' : 'disconnected'}`}><i />{health?.status === 'UP' ? 'Sistema conectado' : 'Sin conexión'}</span>
-            <span className={`connection-pill ${liveConnection === 'connected' ? 'connected' : 'disconnected'}`} title={liveConnection === 'connected' ? 'Telemetría recibida por STOMP' : 'La aplicación consulta el backend mediante polling de respaldo'}><i />{liveConnection === 'connected' ? 'En vivo' : 'Respaldo activo'}</span>
+            <span className="connection-pill connected" title="El panel consulta las lecturas de tu cuenta periódicamente"><i />Actualización automática</span>
             <span className={`connection-pill data-source-pill ${telemetryStatus?.recentDataSource && telemetryStatus.recentDataSource !== 'NONE' ? 'connected' : 'disconnected'}`} title="Origen de las lecturas recibidas durante los últimos 60 segundos"><i />{recentDataSourceLabel(telemetryStatus?.recentDataSource)}</span>
             <button className="icon-button refresh-button" onClick={refreshData} aria-label="Actualizar datos" disabled={refreshing}><RefreshCw size={17} className={refreshing ? 'spin' : ''} /></button>
             <span className="updated-label">{updatedAt ? `Actualizado ${updatedAt.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}` : 'Esperando datos'}</span>
@@ -1450,7 +1666,7 @@ export default function App() {
             <div className="title-date"><Clock3 size={15} />{new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
           </div>
           {renderPage()}
-          <footer className="page-footer"><span>GRIDMIND AI <i>·</i> Supervisión de redes eléctricas</span><span>Java 25 <i>·</i> STOMP en vivo con polling de respaldo</span></footer>
+          <footer className="page-footer"><span>GRIDMIND AI <i>·</i> Supervisión de redes eléctricas</span><span>Java 25 <i>·</i> Actualización por cuenta</span></footer>
         </div>
       </main>
       {(claudePrediction || claudePredictionError) && (
