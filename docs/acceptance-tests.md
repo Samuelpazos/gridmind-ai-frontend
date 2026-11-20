@@ -53,3 +53,7 @@ Open a group with no pending alerts while the pending filter is selected. Check 
 ## FE-13 · Simulator unit changes
 
 Select temperature, voltage, current and vibration in turn. Check that the corresponding target fields display °C, kV, A and mm/s.
+
+## FE-14 · Simulator invalid target
+
+Enter a value the current form marks invalid. Check that the interface prevents the submission or displays an error, and that no scenario is recorded.
