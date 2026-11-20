@@ -17,3 +17,7 @@ Keep **Ver lecturas** open while a second hardware batch arrives. Check that the
 ## FE-04 · Close the readings panel
 
 Open **Ver lecturas**, select its close button and check that the selected asset remains visible in the inventory.
+
+## FE-05 · Real and simulated inventory tabs
+
+Create one real and one simulated asset. Switch between both tabs and check that each asset appears under its corresponding type.
