@@ -9,3 +9,7 @@ Open **Activos → Maqueta ESP32 → Ver lecturas** after a complete batch. Chec
 ## FE-02 · Pending first hardware reading
 
 Open the readings of a real transformer with a linked sensor and no batches yet. Check that the sensor shows **Esperando la primera lectura del ESP32**.
+
+## FE-03 · Refresh an open readings panel
+
+Keep **Ver lecturas** open while a second hardware batch arrives. Check that the displayed value updates. Use readings in different minutes if comparing visible timestamps.
