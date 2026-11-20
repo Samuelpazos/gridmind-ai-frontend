@@ -1482,8 +1482,8 @@ function WorkspaceApp({ currentUser, onSessionExpired, onLogout }) {
     setActionError('');
     setNotice('');
     try {
-      await action();
-      setNotice(successMessage);
+      const response = await action();
+      setNotice(typeof successMessage === 'function' ? successMessage(response) : successMessage);
       await refreshData();
       return true;
     } catch (error) {
@@ -1505,7 +1505,12 @@ function WorkspaceApp({ currentUser, onSessionExpired, onLogout }) {
     const simulatingFailure = commandName === 'SIMULATE_FAILURE';
     const successMessage = {
       SIMULATE_FAILURE: 'Falla simulada. Revisa la alerta crítica en Transformadores simulados.',
-      SCHEDULE_MAINTENANCE: 'Mantenimiento programado. Puedes revisarlo en la lista de abajo.',
+      SCHEDULE_MAINTENANCE: (response) => {
+        const maintenance = response?.data?.maintenance;
+        return maintenance
+          ? `Mantenimiento de ${maintenance.transformerCode} programado para ${dateLabel(maintenance.scheduledDate)}.`
+          : 'Mantenimiento programado. Puedes revisarlo en la lista de abajo.';
+      },
       ACKNOWLEDGE_ALERT: 'Alerta marcada como revisada.',
     }[commandName] || 'Operación completada.';
     const completed = await runAction(
