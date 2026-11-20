@@ -71,3 +71,7 @@ test('failure probability rounding down', () => {
 test('missing failure probability', () => {
   assert.equal(probabilityLabel(null), '—');
 });
+
+test('infinite failure probability', () => {
+  assert.equal(probabilityLabel(Infinity), '—');
+});
