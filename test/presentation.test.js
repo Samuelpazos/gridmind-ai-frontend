@@ -75,3 +75,7 @@ test('missing failure probability', () => {
 test('infinite failure probability', () => {
   assert.equal(probabilityLabel(Infinity), '—');
 });
+
+test('unparsed probability string', () => {
+  assert.equal(probabilityLabel('0.5'), '—');
+});
