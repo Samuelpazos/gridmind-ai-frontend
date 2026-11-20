@@ -32,6 +32,7 @@ import {
   Zap,
 } from 'lucide-react';
 import AuthPage from './pages/AuthPage';
+import { errorText } from './utils/requestError';
 import { dateLabel } from './utils/dates';
 import { probabilityLabel } from './utils/probability';
 import { readingSourceLabel, recentDataSourceLabel } from './utils/telemetry';
@@ -95,7 +96,6 @@ const statusClasses = {
 };
 
 const displayStatus = (status) => statusLabels[status] || status || 'Sin dato';
-const errorText = (error) => error?.response?.data?.message || error?.message || 'Ocurrió un error inesperado.';
 
 function StatusPill({ value }) {
   return <span className={`status-pill ${statusClasses[value] || 'muted'}`}><span />{displayStatus(value)}</span>;
