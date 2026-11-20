@@ -241,9 +241,7 @@ function AssetReadingsDialog({ asset, onClose, onLinkSensor }) {
             const hardware = asset.assetType === 'HARDWARE';
             const source = sensor.latestReading?.source;
             const reading = hardware && source !== 'HARDWARE' && source !== 'HARDWARE_DEMO' ? null : sensor.latestReading;
-            const sourceLabel = reading?.source === 'HARDWARE_DEMO' && sensor.type === 'VIBRATION'
-              ? 'Estimación del MPU6050 sin calibrar'
-              : readingSourceLabel(reading?.source);
+            const sourceLabel = hardware ? null : readingSourceLabel(reading?.source);
             return (
               <div className="service-line" key={sensor.id}>
                 <span>{sensorOptions.find(({ value }) => value === sensor.type)?.label || sensor.type} · {sensor.code}</span>
