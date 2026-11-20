@@ -7,3 +7,7 @@ import { simulationMeasurement } from '../src/utils/measurements.js';
 test('compact hardware source', () => {
   assert.equal(readingSourceLabel('HARDWARE'), 'HW');
 });
+
+test('expanded hardware source', () => {
+  assert.equal(readingSourceLabel('HARDWARE', true), 'Hardware');
+});
