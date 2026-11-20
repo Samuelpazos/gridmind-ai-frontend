@@ -1,6 +1,6 @@
-export const readingSourceLabel = (source) => {
-  if (source === 'HARDWARE') return 'HW';
-  if (source === 'SIMULATION' || source === 'SIMULATED') return 'SIM';
+export const readingSourceLabel = (source, expanded = false) => {
+  if (source === 'HARDWARE') return expanded ? 'Hardware' : 'HW';
+  if (source === 'SIMULATION' || source === 'SIMULATED') return expanded ? 'Simulación' : 'SIM';
   return null;
 };
 
