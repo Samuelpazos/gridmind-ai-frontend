@@ -57,3 +57,7 @@ Select temperature, voltage, current and vibration in turn. Check that the corre
 ## FE-14 · Simulator invalid target
 
 Enter a value the current form marks invalid. Check that the interface prevents the submission or displays an error, and that no scenario is recorded.
+
+## FE-15 · Original and simulated readings
+
+Choose an asset with an existing reading and run a scenario with a different target. Check that the original reading and the requested simulated value appear separately.
