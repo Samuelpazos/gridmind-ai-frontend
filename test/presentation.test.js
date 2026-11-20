@@ -79,3 +79,7 @@ test('infinite failure probability', () => {
 test('unparsed probability string', () => {
   assert.equal(probabilityLabel('0.5'), '—');
 });
+
+test('whole temperature reading', () => {
+  assert.equal(simulationMeasurement(100, '°C'), '100 °C');
+});
