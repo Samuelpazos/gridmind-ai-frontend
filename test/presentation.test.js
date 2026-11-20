@@ -83,3 +83,7 @@ test('unparsed probability string', () => {
 test('whole temperature reading', () => {
   assert.equal(simulationMeasurement(100, '°C'), '100 °C');
 });
+
+test('localized voltage precision', () => {
+  assert.equal(simulationMeasurement(12.345, 'kV'), '12,35 kV');
+});
