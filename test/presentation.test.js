@@ -51,3 +51,7 @@ test('mixed recent origins', () => {
 test('missing recent origin', () => {
   assert.equal(recentDataSourceLabel(undefined), 'Datos: Sin lecturas recientes');
 });
+
+test('zero failure probability', () => {
+  assert.equal(probabilityLabel(0), '0%');
+});
